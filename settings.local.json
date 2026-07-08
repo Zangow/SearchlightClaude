@@ -1,0 +1,33 @@
+{
+  "skillOverrides": {
+    "check-logs": "off",
+    "deploy": "off",
+    "deploy-status": "off",
+    "dw-analyze": "off",
+    "dw-analyze-backend": "off",
+    "dw-analyze-frontend": "off",
+    "dw-analyze-mobile": "off",
+    "dw-check-migration": "off",
+    "dw-cost-review": "off",
+    "dw-design": "off",
+    "dw-infra-review": "off",
+    "dw-int-input-analysis": "off",
+    "dw-issue": "off",
+    "dw-perf-scan": "off",
+    "dw-pr": "off",
+    "dw-security-reviewer": "off",
+    "dw-ship": "off",
+    "dw-sort-bot-generated-tickets": "off",
+    "dw-spot-check-int": "off",
+    "dw-start-env": "off",
+    "dw-verify": "off",
+    "dw-verify-backend": "off",
+    "dw-verify-data": "off",
+    "dw-verify-frontend": "off",
+    "dw-verify-mobile": "off",
+    "dw-verify-requirements": "off",
+    "dw-website-sync": "off",
+    "water-trail-cold-outreach": "off",
+    "water-trail-lead-collection": "off"
+  }
+}
