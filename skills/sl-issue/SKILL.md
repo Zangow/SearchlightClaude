@@ -99,9 +99,9 @@ git -C "$SL_BASE_PATH/IntegrationService" push -u origin <branch>   # publish im
 ```
 
 ### 3. Plan + implement  (commit + push incrementally)
-Plan the change against the checklist (consider the `Plan` agent for non-trivial work). Planning and authoring are **core roles — keep them on the strongest available model**; reserve cheaper models for the review/verify panels downstream.
+Plan the change against the checklist **inline, in the main thread** — you have to load the relevant files to implement anyway, so a separate planning agent just pays to read the same context twice. Planning and authoring are **core roles — keep them on the strongest available model**; reserve cheaper models for the review/verify panels downstream.
 
-**Plan-review gate (non-trivial issues).** If the planned change is multi-file, adds a new endpoint/contract/integration, or touches persistence, dispatch a fresh plan reviewer (Agent tool, `general-purpose`) before writing code. Hand it the issue, the requirements checklist, and your written plan; ask: will this plan meet every checklist row? what will break? what's simpler? Fold blockers into the plan before implementing.
+**Plan-review gate (contract-level changes only).** Dispatch a fresh plan reviewer (Agent tool, `general-purpose`) before writing code **only when** the plan changes a published contract/schema, an external integration contract, or persistence/migrations — the class of change where a wrong plan is expensive to unwind. Hand it the issue, the requirements checklist, and your written plan; ask: will this plan meet every checklist row? what will break? what's simpler? Fold blockers into the plan before implementing. For everything else, skip the gate — plans are cheap to revise mid-implementation, and the verification loop is the real safety net.
 
 **Derive tests from the checklist, not the code.** Turn each testable checklist row into a named test (`R3 → test('…')`) so the requirements pass in `sl-verify` maps rows → tests directly. Post-hoc tests encode what the code *does*, not what the issue *required*.
 

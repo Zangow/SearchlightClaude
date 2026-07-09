@@ -17,10 +17,10 @@ The top-level pipeline that takes a finished change through quality, independent
 Before anything else, confirm the repo is on a feature branch, not `main`. Invoked via `sl-issue` it already is (branch cut up front, incremental commits). Run standalone on a code-complete change that's still sitting on `main`, **move it to a branch first**: `git -C "$SL_BASE_PATH/IntegrationService" fetch origin main && git -C "$SL_BASE_PATH/IntegrationService" switch -c <feat|fix>/<slug> origin/main`, then commit + push the work before the pipeline runs. Commit each remaining uncommitted chunk separately — don't batch into one blob commit.
 
 ### 1. Quality pass — `simplify` + `/code-review`
-Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficiency, altitude). Apply its fixes. This is quality only — bug-hunting happens in verification. Additionally run **`/code-review`** for correctness — **mandatory** when the change is >150 changed lines, or touches auth/permissions, credentials/secrets handling, external integration contracts, persistence/migrations, or a public API contract; below that threshold it may be skipped **with a stated reason in the ship report**.
+Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficiency, altitude). Apply its fixes. This is quality only — bug-hunting happens in verification. Additionally run **`/code-review` at `medium` effort** (higher tiers fan out their own multi-agent pass — don't pay that by default; escalate only if the user asked for a thorough review) for correctness — **mandatory** when the change is >150 changed lines, or touches auth/permissions, credentials/secrets handling, external integration contracts, persistence/migrations, or a public API contract; below that threshold it may be skipped **with a stated reason in the ship report**.
 
 ### 2. Independent verification — `sl-verify`  (loop until green)
-Invoke **`sl-verify`**. It dispatches the change to **separate, unbiased agents** checking build, tests, lint, and real runtime behavior — plus the requirements-traceability pass when the work came from an issue (pass the checklist path through). It loops — fix, re-verify with a fresh agent — until everything is PASS. Collect its summary + evidence + caveats.
+Invoke **`sl-verify`**. It runs the mechanical checks (build, tests, lint) inline, then dispatches **one separate, unbiased agent** to verify real runtime behavior — plus requirements traceability in the same pass when the work came from an issue (pass the checklist path through). It loops — fix, re-verify — until everything is PASS. Collect its summary + evidence + caveats.
 
 **Do not proceed to PR until verification is green.** If it can't go green within a few rounds, stop and surface the blockers to the user.
 
@@ -51,6 +51,6 @@ Report the PR URL back so `sl-issue` can move the card to **"In review"** (it ow
 Report: what simplify/code-review changed, the verification verdict, and the PR URL — so the user can go straight into review.
 
 ## Notes
-- **Independence is the point**: verification is always done by agents that didn't author the code (enforced by `sl-verify`). Don't shortcut it by verifying inline.
+- **Independence where judgment lives**: behavioral and requirements verification is always done by an agent that didn't author the code (enforced by `sl-verify`) — don't shortcut that by judging behavior inline. Mechanical checks (build/tests/lint) run inline by design; an exit code carries no authoring bias.
 - Commit + push each change without asking; the PR is the human review gate.
 - Each sub-step is also runnable on its own (`sl-verify`, the PR step) when you don't need the whole pipeline.
