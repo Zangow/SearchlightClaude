@@ -17,7 +17,9 @@ The top-level pipeline that takes a finished change through quality, independent
 Before anything else, confirm the repo is on a feature branch, not `main`. Invoked via `sl-issue` it already is (branch cut up front, incremental commits). Run standalone on a code-complete change that's still sitting on `main`, **move it to a branch first**: `git -C "$SL_BASE_PATH/IntegrationService" fetch origin main && git -C "$SL_BASE_PATH/IntegrationService" switch -c <feat|fix>/<slug> origin/main`, then commit + push the work before the pipeline runs. Commit each remaining uncommitted chunk separately — don't batch into one blob commit.
 
 ### 1. Quality pass — `simplify` + `/code-review`
-Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficiency, altitude). Apply its fixes. This is quality only — bug-hunting happens in verification. Additionally run **`/code-review` at `medium` effort** (higher tiers fan out their own multi-agent pass — don't pay that by default; escalate only if the user asked for a thorough review) for correctness — **mandatory** when the change is >150 changed lines, or touches auth/permissions, credentials/secrets handling, external integration contracts, persistence/migrations, or a public API contract; below that threshold it may be skipped **with a stated reason in the ship report**.
+Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficiency, altitude). Apply its fixes. This is quality only — bug-hunting happens in verification and in the correctness review at step 3.5.
+
+> **Correctness review moved to step 3.5.** The installed reviewer is the `code-review` plugin (`claude-plugins-official`), which reviews a **pull request** by number — so it cannot run here, before the PR exists. The bare `/code-review` skill is `disable-model-invocation` and cannot be launched programmatically at all; don't try, and don't hand-roll a replacement panel. See step 3.5.
 
 ### 2. Independent verification — `sl-verify`  (loop until green)
 Invoke **`sl-verify`**. It runs the mechanical checks (build, tests, lint) inline, then dispatches **one separate, unbiased agent** to verify real runtime behavior — plus requirements traceability in the same pass when the work came from an issue (pass the checklist path through). It loops — fix, re-verify — until everything is PASS. Collect its summary + evidence + caveats.
@@ -43,6 +45,20 @@ PR body structure (write it to a scratchpad file, then `--body-file`):
 - End with the generated-with footer the harness instructions specify.
 
 Screenshots for anything user-visible: upload via `gh` (gist or release asset — kept out of repo history) and embed inline.
+
+### 3.5 Correctness review on the open PR — `code-review`
+Once the PR is up, invoke the **`code-review` plugin** via the Skill tool with the PR number as the argument:
+
+```
+Skill(skill: "code-review:code-review", args: "<PR number>")
+```
+
+It fans out its own panel (Haiku eligibility + summary, 5 parallel Sonnet reviewers across CLAUDE.md adherence / obvious bugs / git-blame history / prior-PR comments / code-comment guidance, then per-finding Haiku confidence scoring), filters to findings scoring ≥80, and posts them as a comment on the PR. A clean run posts nothing — that is a pass, not a failure.
+
+- **Mandatory** when the change is >150 changed lines, or touches auth/permissions, credentials/secrets handling, external integration contracts, persistence/migrations, or a public API contract; below that threshold it may be skipped **with a stated reason in the ship report**.
+- **Address the findings before handing back.** A confirmed correctness finding loops back to a fix + a `sl-verify` re-run (step 2), then push — don't leave a ≥80-confidence bug sitting in a PR comment as though the review were merely advisory.
+- It deliberately ignores anything a compiler, linter, or test suite would catch, assuming CI covers that. This repo has no CI (see the no-GitHub-workflows rule), so `./gradlew check` from step 2 **is** that gate — make sure it's green rather than expecting the reviewer to catch a build break.
+- **Not resolvable?** `code-review:code-review` requires the plugin enabled in `~/.claude/settings.json` (`enabledPlugins`) *and* a restart since. If the Skill tool reports an unknown skill, say so in the ship report and ask the user to run `/code-review <PR#>` themselves — never substitute a self-authored review panel for it.
 
 ### 4. Hand back to `sl-issue` (when issue-driven)
 Report the PR URL back so `sl-issue` can move the card to **"In review"** (it owns the board move). Run standalone, there's no board interaction here.
