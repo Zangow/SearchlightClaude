@@ -16,7 +16,25 @@ The top-level pipeline that takes a finished change through quality, independent
 ### 0. Branch guard — never ship from `main`
 Before anything else, confirm the repo is on a feature branch, not `main`. Invoked via `sl-issue` it already is (branch cut up front, incremental commits). Run standalone on a code-complete change that's still sitting on `main`, **move it to a branch first**: `git -C "$SL_BASE_PATH/IntegrationService" fetch origin main && git -C "$SL_BASE_PATH/IntegrationService" switch -c <feat|fix>/<slug> origin/main`, then commit + push the work before the pipeline runs. Commit each remaining uncommitted chunk separately — don't batch into one blob commit.
 
-### 1. Quality pass — `simplify` + `/code-review`
+### 0.5 Reviewer preflight — fail loudly now, not at step 3.5
+The correctness reviewer (step 3.5) is a **plugin**, so it can be absent. Check that up front: discovering it's missing after `sl-verify` has run means the whole pipeline is already paid for. One cheap check:
+
+```bash
+jq -e '.enabledPlugins["code-review@claude-plugins-official"] == true' ~/.claude/settings.json >/dev/null 2>&1 \
+  && echo "enabled-in-config" || echo "NOT-enabled"
+```
+
+Combine that with whether `code-review` appears in your available-skills listing — config and session-load state are **different things**, and the gap between them is the usual failure:
+
+| Config | In skills listing | State | Say this up front |
+|---|---|---|---|
+| enabled | yes | ✅ ready | nothing — proceed |
+| enabled | no | ⚠ needs restart | "`code-review` is enabled but wasn't loaded this session — restart to activate it, or step 3.5 will be skipped with that as the stated reason." |
+| not enabled | no | ⚠ not installed | "`code-review` isn't installed. Add `\"enabledPlugins\": {\"code-review@claude-plugins-official\": true}` to `~/.claude/settings.json` and restart — want me to write it now so the next run has it?" |
+
+**Do not block on this.** The review is mandatory-above-threshold but explicitly skippable *with a stated reason*, and a missing plugin is exactly such a reason — stalling a green pipeline over a config gap is worse than shipping with the gap flagged. Report the state, offer the fix, and carry on. Writing the setting mid-run does **not** make the plugin available to the current session (it loads at startup), so offer it as a fix for the *next* run.
+
+### 1. Quality pass — `simplify`
 Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficiency, altitude). Apply its fixes. This is quality only — bug-hunting happens in verification and in the correctness review at step 3.5.
 
 > **Correctness review moved to step 3.5.** The installed reviewer is the `code-review` plugin (`claude-plugins-official`), which reviews a **pull request** by number — so it cannot run here, before the PR exists. The bare `/code-review` skill is `disable-model-invocation` and cannot be launched programmatically at all; don't try, and don't hand-roll a replacement panel. See step 3.5.
