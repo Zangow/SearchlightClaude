@@ -1,6 +1,6 @@
 ---
 name: sl-deploy
-description: Deploy the Searchlight IntegrationService to QA or PROD — a single front door over the repo's deploy scripts for any combination of the backend service, the admin UI, and the customer embed/website component. Asks which components and which environment, runs preflight (clean tree, Docker, AWS profile/region), enforces a hard PROD confirmation gate, then verifies the service reaches steady state + smoke passes and (for backend) the image replicates into prod's region (us-east-1). After a QA deploy, offers to run the acceptance-test (AT) pack against it. Use when asked to "deploy", "ship/release to qa|prod", "deploy the backend/admin/website", or "push a build to <env>".
+description: Deploy the Searchlight IntegrationService to QA or PROD — a single front door over the repo's deploy scripts for any combination of the backend service, the admin UI, and the customer embed/website component. Asks which components and which environment, runs preflight (clean tree, Docker, AWS profile/region), enforces a hard PROD confirmation gate, then verifies the service reaches steady state + smoke passes and (for backend) the image replicates into prod's region (us-east-1). A request that names BOTH environments is run as a promote sequence — QA deploy, then a MANDATORY acceptance-test (AT) gate against QA that must PASS before PROD is touched. Use when asked to "deploy", "ship/release to qa|prod", "deploy the backend/admin/website", or "push a build to <env>".
 ---
 
 # sl-deploy — deploy IntegrationService to QA or PROD
@@ -24,6 +24,14 @@ This skill orchestrates the repo's own deploy scripts — it does not reimplemen
 If the user already named them ("deploy the backend to prod"), use that. Otherwise **ask** with `AskUserQuestion`:
 - **Components** (multi-select): `services`, `admin`, `website`.
 - **Environment** (single-select): `qa`, `prod`.
+
+**Both environments = a promote sequence, not a choice.** If the request names both ("deploy to QA and PROD", "qa then prod", "roll this out everywhere"), do **not** ask them to pick one. Run it as an ordered sequence and say so when you confirm the plan:
+
+```
+QA deploy (Step 4) → QA verify (Step 5) → AT GATE against QA (Step 6, mandatory) → PROD yes → PROD deploy (Step 4) → PROD verify (Step 5)
+```
+
+Record that PROD is in the plan — **that flag is what makes Step 6 a blocking gate instead of an offer.** A red or un-run pack ends the run with QA deployed and PROD untouched.
 
 ## Step 2 — Preflight (fail fast, before any slow build)
 
@@ -50,6 +58,8 @@ Print exactly what will happen: components → scripts, environment, the commit 
 2. **Only after that yes**, run the prod script with `DEPLOY_ASSUME_YES=1` (bypasses the stdin prompt).
 3. **Never set `DEPLOY_ASSUME_YES=1` before an explicit per-deploy prod yes.** QA needs no such gate.
 
+**In a QA→PROD sequence, the prod yes comes *after* the AT gate.** Confirm the whole sequence here so the user knows both deploys are coming, but collect the hard prod confirmation **once Step 6 is green**, with the pack's pass/fail summary in front of them — a yes given before the tests ran isn't an informed one. A pre-gate "yes, do both" authorizes the *sequence*, never the prod leg on a red or un-run pack; don't carry it across the gate.
+
 ## Step 4 — Execute
 
 Run each selected deploy **in the background** with logs to the scratchpad, and monitor (these take minutes: tests + build + push + apply + wait + smoke).
@@ -62,6 +72,8 @@ AWS_PROFILE=searchlight scripts/deploy-backend.sh qa            > <scratchpad>/d
 DEPLOY_ASSUME_YES=1 AWS_PROFILE=searchlight scripts/deploy-backend.sh prod > <scratchpad>/deploy-backend-prod.log 2>&1
 ```
 Useful flags: `--skip-build` (reuse an already-pushed/replicated SHA — the promote path, see Step 5), `--skip-webhook-smoke` (before the webhook receiver is live), `--acceptance` (post-deploy acceptance gate). `--skip-tests` is **refused for prod**.
+
+**Promote the tested image — don't rebuild it.** In a QA→PROD sequence the prod backend deploy must reuse the exact SHA the ATs ran against: `deploy-backend.sh prod --skip-build` (Step 5 already proved that SHA replicated into us-east-1). Re-check `git rev-parse --short=12 HEAD` is unchanged since the QA deploy before the prod leg; **if the tree moved, the AT gate is void** — redeploy QA and re-run Step 6 rather than promoting an untested SHA.
 
 **Admin / website (UI):** run once if either was selected.
 ```bash
@@ -88,11 +100,17 @@ AWS_PROFILE=searchlight aws ecr describe-images \
 - **Deploying QA:** this proves the promote-to-prod path is ready — the same SHA is now in us-east-1, so a later `deploy-backend.sh prod --skip-build` can reuse it (no rebuild).
 - **Deploying PROD:** `services-stable` already proved prod pulled it; this is a belt-and-suspenders confirmation.
 
-## Step 6 — Acceptance tests (after a QA deploy, **offer**)
+## Step 6 — Acceptance tests against QA (**mandatory gate when PROD is in the plan**)
 
-Once a **QA** deploy finishes green, **offer** to run the acceptance pack against it — don't run it unprompted (it takes minutes), and don't run it after a prod deploy (prod only gets the read-only `prod-smoke` subset, and only if the user asks). Recommend "yes" when the deploy included `services`.
+Once a **QA** deploy finishes green, the acceptance pack runs against it. Whether that's a gate or an offer depends on where the run is headed:
 
-If they accept, run `scripts/run-acceptance.sh qa`. It needs `ADMIN_API_KEY` + `WEBSITE_API_KEY` exported (it resolves the base URL from QA's Terraform outputs itself). Fetch both from QA's secrets first:
+| This run | AT pack | On failure |
+|---|---|---|
+| **QA → PROD** (both named) | **Always. No offer, no skip, no "the change is unrelated" exemption** | **Hard stop — PROD is not deployed** |
+| **QA only** | **Offer** it (it takes minutes); recommend yes when the deploy included `services` | Report it; the user decides what's next |
+| **PROD only** (no QA leg this run) | See *PROD without a QA leg* below | — |
+
+`scripts/run-acceptance.sh qa` needs `ADMIN_API_KEY` + `WEBSITE_API_KEY` exported (it resolves the base URL from QA's Terraform outputs itself). Fetch both from QA's secrets first:
 ```bash
 cd "$SL_BASE_PATH/IntegrationService"
 export AWS_PROFILE=searchlight
@@ -102,15 +120,28 @@ export WEBSITE_API_KEY="$(AWS_REGION=us-west-2 aws secretsmanager get-secret-val
   --query SecretString --output text)"
 scripts/run-acceptance.sh qa   > <scratchpad>/acceptance-qa.log 2>&1   # run in background; watch the log
 ```
-Add `--push-contract` only if the webhook/push-ingestion contracts are deployed to QA (otherwise those scenarios stay skipped). Report the pass/fail summary; JUnit XML lands in `acceptance-tests/build/test-results/acceptanceTest/`.
+Add `--push-contract` when the change touches webhook/push ingestion **and** those contracts are deployed to QA — without it those scenarios stay skipped.
 
-> This is the same pack the deploy's own `--acceptance` flag runs as an inline gate. The difference: here it's a **post-deploy offer** so a normal QA deploy isn't blocked on it, and the user chooses per-deploy. If they'd rather gate every QA deploy, tell them to pass `--acceptance` (or set `DEPLOY_ACCEPTANCE=1`) in Step 4 instead.
+**Reading the result — the gate opens on PASS and nothing else.**
+- Non-zero exit / `ACCEPTANCE FAILED` → **FAIL**.
+- **Could-not-run** (missing keys, Terraform/base-URL resolution failure, the pack erroring before any test executes) → **BLOCKED, and BLOCKED counts as FAIL for this gate.** "Didn't run" is never "nothing was wrong".
+- **Green with skips** → report how many scenarios skipped and which. Push-ingestion scenarios self-skip without `--push-contract`, and the S3 delivery assertions self-skip without a resolvable `DELIVERY_S3_BUCKET` (the script exports it from Terraform — say so if that lookup failed). A silent skip reads as a pass and is exactly how a delivery guarantee goes unverified.
+- Quote the real summary line and the JUnit path (`acceptance-tests/build/test-results/acceptanceTest/`) as evidence — not your recollection of the run.
+
+**On FAIL or BLOCKED, stop the sequence.** State plainly: QA is deployed, **PROD is not**, and why — the failing scenarios plus the log path. Then hand it back. The paths forward are: fix → redeploy QA → re-run this gate, or `scripts/rollback-backend.sh qa`. **Do not deploy PROD on a red or un-run pack, and do not offer to** — if the user still wants prod after seeing the failures, that's a fresh, explicit prod-only instruction from them, never something this skill proposes, infers, or works around.
+
+**PROD without a QA leg.** A prod-only request (hotfix, promoting a SHA from an earlier session, a rollback) has no QA gate to hang off. Don't invent one — but don't go quiet either: **before** the prod confirmation, say whether this SHA has a green QA AT run behind it. If you can't point to one, recommend the QA-first sequence instead and let the user decide; proceed only on their explicit yes. After a prod deploy the only pack that may run is the read-only `prod-smoke` subset (`scripts/run-acceptance.sh prod-smoke`), and only if asked — the full pack mutates data and must never be pointed at prod.
+
+**Coverage caveat, say it rather than implying more than you ran.** The pack is black-box over the backend's HTTP + S3 surface, so an **admin/website-only** QA deploy is only indirectly covered by it. The gate still runs (a UI deploy can still break the flows the pack exercises), but for real browser coverage of the connect → register → deliver → unsubscribe loop, `scripts/run-e2e.sh qa` (Playwright, `e2e/specs/`) is the suite that exercises the UI — **offer** it on UI deploys; it is not part of the blocking gate.
+
+> The same pack is available as an inline flag on the backend deploy (`--acceptance`, or `DEPLOY_ACCEPTANCE=1`), which fails the deploy outright if the pack fails. This skill runs it as an explicit step instead for two reasons: the gate must also hold for **UI-only** QA deploys, where `deploy-backend.sh` never runs at all; and the skill needs the result in hand to drive the prod confirmation. If you do use the flag, export both keys **before** the deploy — `run-acceptance.sh` dies without them, which would fail an otherwise-good deploy at its last step.
 
 ## Step 7 — Report
 
-State per component: env, commit SHA, current→new image, service health (HTTP code), and (backend) replication-to-us-east-1 status. Note the deployed URLs: prod API `https://searchlight-integrations.digital`, admin at the env `ui_url`, embed at `<ui_url>/embed/searchlight-integrations.js`. For a QA backend deploy, remind that the image is now promotable to prod with `--skip-build`.
+State per component: env, commit SHA, current→new image, service health (HTTP code), and (backend) replication-to-us-east-1 status. For any run that deployed QA, also report the **AT verdict** — PASS / FAIL / BLOCKED, counts (passed / failed / skipped), and whether it was the blocking gate or an optional offer. On a stopped sequence, lead with what is and isn't deployed: *"QA is on `<sha>`; PROD was not deployed — the AT gate failed on `<scenarios>`."* Note the deployed URLs: prod API `https://searchlight-integrations.digital`, admin at the env `ui_url`, embed at `<ui_url>/embed/searchlight-integrations.js`. For a QA backend deploy, remind that the image is now promotable to prod with `--skip-build`.
 
 ## Guardrails
+- **Never deploy PROD in a QA→PROD run without a green AT pass against QA on the same SHA.** BLOCKED, un-run, or "it only skipped everything" is not green. This gate has no skip flag and no exemption for small or unrelated-looking changes — if you're about to write "the AT failure is unrelated to this change", stop and hand it to the user instead.
 - Never deploy prod from a worktree, a dirty tree, or a non-`main` branch without the user naming the exact release commit.
 - Never `--skip-tests` on prod (the scripts refuse it; don't try to route around).
 - One `deploy-ui.sh` run covers admin+website — don't run it twice.

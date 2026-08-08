@@ -44,6 +44,12 @@ Invoke **`sl-verify`**. It runs the mechanical checks (build, tests, lint) inlin
 
 **Do not proceed to PR until verification is green.** If it can't go green within a few rounds, stop and surface the blockers to the user.
 
+**Acceptance-coverage check — before the PR, not after the deploy.** The standing policy (`sl-issue` step 3) is acceptance coverage by default for every feature and bug fix, with unit/integration retained underneath it. So before opening the PR, confirm one of these is true and say which:
+- the change extends or adds an **AT** — `acceptance-tests/` for API/delivery behavior, `e2e/specs/*.spec.ts` for admin-UI/embed behavior — **and it has actually been run** (`scripts/run-acceptance.sh local`, or `scripts/run-e2e.sh qa`); or
+- there's a **stated reason** an AT doesn't fit (pure helper, unreachable branch, not observable in a deployed env — e.g. a Micrometer counter, which has no exporter).
+
+Neither one true → that's a finding to fix now, not a follow-up. `:acceptance-tests:acceptanceTest` is **outside `./gradlew check`**, so a green build says nothing about whether a new AT even compiles against a live target — an unrun AT is not evidence. This is what makes `sl-deploy`'s QA gate meaningful: it can only catch a regression the pack actually covers.
+
 ### 3. Open the PR
 Revert any temporary verification edits first, then commit + push whatever remains (no need to ask):
 ```bash
@@ -57,7 +63,7 @@ PR body structure (write it to a scratchpad file, then `--body-file`):
 - **Summary** — what changed and why.
 - **Changes** — bullet list by area.
 - **Requirements** — when issue-driven, the satisfied-requirements table from the checklist (each row ✅ with its evidence).
-- **How verified** — the `VERIFY SUMMARY` block from `sl-verify`, with screenshots/output embedded or linked.
+- **How verified** — the `VERIFY SUMMARY` block from `sl-verify`, with screenshots/output embedded or linked. Name the **test levels** the change landed (AT + unit/integration, or the stated reason an AT doesn't fit) — a reviewer shouldn't have to diff the test tree to find out whether this is covered post-deploy.
 - **Caveats / follow-ups** — anything consciously deferred, including open recommendations from the quality pass.
 - **`Refs #<n>`** when the work came from an issue — a plain, non-closing reference so the PR and issue cross-link. **Never `Closes`/`Fixes`/`Resolves`** — issues are closed manually on merge.
 - End with the generated-with footer the harness instructions specify.

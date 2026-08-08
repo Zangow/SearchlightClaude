@@ -114,6 +114,18 @@ Otherwise, plan the change against the checklist **inline, in the main thread** 
 
 **Derive tests from the checklist, not the code.** Turn each testable checklist row into a named test (`R3 → test('…')`) so the requirements pass in `sl-verify` maps rows → tests directly. Post-hoc tests encode what the code *does*, not what the issue *required*.
 
+**Which level of test — default to an acceptance test, and always keep the unit/integration layer too.**
+1. **Every new feature and every bug fix should land acceptance-test coverage** of its externally-observable outcome. This is the default expectation, not the exception — if a change ships without an AT, that's a decision you have to justify (see 3), not a silent omission. The reason is deployment: the AT pack is what `sl-deploy` runs against QA, and (on a QA→PROD run) what **gates PROD**. A behavior with no AT is a behavior nobody checks after a deploy.
+2. **Prefer extending an existing spec over writing a new one.** Find the test that already exercises that endpoint/flow and add the case or assertion there; a new spec is warranted only when nothing covers the flow, or when folding it in would make one test cover two unrelated things. Search first (`rg -l "<endpoint|flow|slug>" acceptance-tests/src e2e/specs src/integrationTest`), then say which you did and why.
+   - **`acceptance-tests/`** (`AcceptanceTestBase` subclasses) — black-box HTTP + S3 against a *running* target: admin API, catalog/authZ, registration → poll/push → delivery, idempotency/residue.
+   - **`e2e/specs/*.spec.ts`** (Playwright) — real-browser flows through the admin UI and the customer embed card (the connect → register → deliver → unsubscribe loop). This is the AT layer for **`ui/` and `ui-embed/`** work.
+   - **`src/integrationTest/`** (Testcontainers: Postgres + LocalStack, needs Docker) — anything crossing persistence/S3/Secrets that isn't observable from outside.
+3. **When an AT genuinely doesn't fit, use unit/integration instead — and record why.** Legitimate cases: a pure helper or formatter, an internal branch no API or UI surface can reach, a condition the pack can't provoke without absurd fixture gymnastics, or a signal that isn't observable in a deployed env at all (**Micrometer counters — there is no exporter**; plan a log line or an API-observable signal instead). Note the reason in the checklist and in the PR body so a reviewer sees it was a call, not an oversight.
+4. **Unit/integration tests are still required even when you add an AT.** These are not alternatives. The AT proves the outcome end-to-end; the unit/integration layer pins the logic, edge cases, and error paths at the level where a failure actually tells you what broke. Adding an AT never excuses skipping them.
+5. **Know what the PR gate does and doesn't run.** `:acceptance-tests:acceptanceTest` is deliberately **outside `./gradlew check`** — it needs a running target — so a new AT is *not* exercised by the pre-PR build. Run it yourself against a local stack (`scripts/run-acceptance.sh local` after `sl-start-env`) so you're not handing over a spec that has never executed; `sl-verify` expects that evidence, and `sl-deploy` runs the same pack against QA post-deploy.
+
+Record the chosen level per requirement in the checklist's Evidence column (e.g. `AT: RegistrationPollDeliveryAcceptanceTest (extended, run vs local)` + `unit: RecordFilterTest`) so the requirements pass in `sl-verify` can check both layers.
+
 Keep the checklist open as your definition of done — every `☐` must be addressed by code (or explicitly moved to out-of-scope with a reason).
 
 **Commit + push after each completed step** (a checklist row or a coherent chunk) — don't batch everything into one commit at the end:
@@ -161,4 +173,5 @@ Report: the issue title + URL, **whether an `sl-plan` plan of record was adopted
 - **An `sl-plan` plan of record is trusted, not obeyed.** Adopt it only after the step-1 existence + staleness + completeness check passes; if the code moved or the scope changed since it was written, say what drifted and amend it rather than implementing a plan against a codebase that no longer matches. Its *resolved clarifications* stay settled either way — those were a human decision, not a guess.
 - **Board status is a convenience, not a gate**: "In progress" / "In review" moves never block the actual change.
 - The checklist is the contract. An unaddressed row is a FAIL, not a caveat.
+- **Tests: AT by default, extend before adding, unit/integration always.** A feature or fix without acceptance coverage needs a stated reason (step 3); so does a new spec where an existing one could have been extended. An AT is never a substitute for the unit/integration layer — and since `acceptanceTest` sits outside `./gradlew check`, a new AT you never actually ran isn't coverage, it's a guess.
 - Each downstream step is still runnable on its own; `sl-issue` just adds fetch + author in front of `sl-ship`.
