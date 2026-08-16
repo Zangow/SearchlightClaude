@@ -29,5 +29,10 @@
     "dw-website-sync": "off",
     "water-trail-cold-outreach": "off",
     "water-trail-lead-collection": "off"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(export *)"
+    ]
   }
 }
