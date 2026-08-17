@@ -56,7 +56,15 @@ Launch the verifier as a `general-purpose` agent (per the core principle above).
 Collect verdicts. On any **FAIL**, fix the code in the main thread, then re-check — but scope the re-check to what failed and don't pay a fresh bootstrap you don't need:
 1. **Mechanical failures (build/tests/lint):** re-run the failed commands inline. No agent involved.
 2. **Behavioral/requirements failures:** continue the *same* verifier via `SendMessage`, scoped to the failed checks — it already has the service context, and re-checking a targeted fix carries little anchoring risk. Spawn a brand-new fresh agent only if the fix materially rewrote the behavior under test (the prior verifier's mental model no longer applies).
-3. Repeat until everything is PASS. Cap at ~3 rounds, then surface remaining issues to the user rather than looping forever.
+3. **Hard cap: 2 code-fix rounds.** Not "about three" — two. If anything is still FAIL after round 2, **stop and report**; do not open a third round in this context.
+
+**Why the cap is hard.** Every round appends a verifier report *and* a fix diff to your context, and each subsequent tool call re-reads all of it — so round 3 costs more than rounds 1 and 2 combined while being the least likely to work. Two rounds that didn't converge almost always mean the **diagnosis** is wrong, not the fix, and a third pass by the same context repeats the same wrong model of the bug. An unbounded repair loop is the single most expensive failure mode in this pipeline.
+
+**At the cap:**
+- **Still FAIL** → report it with the verifier's findings **verbatim**, plus what each round changed and why it didn't work. To `sl-ship`/`sl-issue` this is a failed ship, not a caveat — never round a persistent FAIL up to PASS to end the loop.
+- **Genuinely close but not converged** → hand the remaining failure to a **fresh** agent (branch, failing verifier report, plain-English requirement, what the two rounds already tried) instead of continuing here. A cold context is both cheaper on round 3 and likelier to see what two rounds in the same head kept missing.
+- **BLOCKED on the environment** (service won't boot, missing credentials, unreachable dependency) → **does not count against the cap.** That's an env fix and a re-dispatch, not a repair round. Only rounds that changed *code* count.
+- **Mechanical re-runs are free.** Re-running a failed build/test/lint command inline (case 1) is not a repair round either — the cap counts rounds that went back to the **behavioral/requirements verifier**.
 
 ### 4. Summarize
 Produce a consolidated verdict — PASS/FAIL/BLOCKED per check, what was tested at which level, evidence, screenshot paths, and any caveats. This block feeds the PR step in `sl-ship`.

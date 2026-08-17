@@ -11,6 +11,8 @@ The top-level pipeline that takes a finished change through quality, independent
 
 > **This is the final pre-PR pass — not your inner-loop check.** During active iteration, run the build/tests directly for what you just touched (fast). Reserve this full pipeline for when the change is code-complete and you're ready to open review, not after every edit.
 
+> **Run this in its own thread, not in the authoring context.** `sl-issue` dispatches this skill as a fresh agent (its step 4) precisely so the pipeline doesn't inherit the author's context — a long context is re-read on every tool call, so the same pipeline costs several times more downstream of authoring than it does cold. If you were dispatched that way, your brief carries the branch, `SL_BASE_PATH`/`SL_REAL_BASE` exports, issue, and checklist path: **export the base paths first**, then read the diff yourself from the branch. If you find yourself invoked *inline* from a context that just wrote the code, say so and hand off instead.
+
 ## Pipeline
 
 ### 0. Branch guard — never ship from `main`
@@ -39,10 +41,10 @@ Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficien
 
 > **Correctness review moved to step 3.5.** The installed reviewer is the `code-review` plugin (`claude-plugins-official`), which reviews a **pull request** by number — so it cannot run here, before the PR exists. The bare `/code-review` skill is `disable-model-invocation` and cannot be launched programmatically at all; don't try, and don't hand-roll a replacement panel. See step 3.5.
 
-### 2. Independent verification — `sl-verify`  (loop until green)
+### 2. Independent verification — `sl-verify`  (loop until green, capped)
 Invoke **`sl-verify`**. It runs the mechanical checks (build, tests, lint) inline, then dispatches **one separate, unbiased agent** to verify real runtime behavior — plus requirements traceability in the same pass when the work came from an issue (pass the checklist path through). It loops — fix, re-verify — until everything is PASS. Collect its summary + evidence + caveats.
 
-**Do not proceed to PR until verification is green.** If it can't go green within a few rounds, stop and surface the blockers to the user.
+**Do not proceed to PR until verification is green.** The loop is capped at **2 code-fix rounds** (`sl-verify` step 3); environment BLOCKED re-dispatches and inline mechanical re-runs don't count against it. At the cap, stop — don't keep grinding. Report `SHIP-FAILED:` with the verifier findings verbatim, what each round tried, and the branch + worktree left in place. A third round in this context costs more than the first two together and rarely converges, because two failed rounds usually mean the diagnosis is wrong rather than the fix.
 
 **Acceptance-coverage check — before the PR, not after the deploy.** The standing policy (`sl-issue` step 3) is acceptance coverage by default for every feature and bug fix, with unit/integration retained underneath it. So before opening the PR, confirm one of these is true and say which:
 - the change extends or adds an **AT** — `acceptance-tests/` for API/delivery behavior, `e2e/specs/*.spec.ts` for admin-UI/embed behavior — **and it has actually been run** (`scripts/run-acceptance.sh local`, or `scripts/run-e2e.sh qa`); or
@@ -85,7 +87,7 @@ It fans out its own panel (Haiku eligibility + summary, 5 parallel Sonnet review
 - **Not resolvable?** `code-review:code-review` requires the plugin enabled in `~/.claude/settings.json` (`enabledPlugins`) *and* a restart since. If the Skill tool reports an unknown skill, say so in the ship report and ask the user to run `/code-review <PR#>` themselves — never substitute a self-authored review panel for it.
 
 ### 4. Hand back to `sl-issue` (when issue-driven)
-Report the PR URL back so `sl-issue` can move the card to **"In review"** (it owns the board move). Run standalone, there's no board interaction here.
+End your final message with the return contract your brief asked for: the **PR URL**, the `VERIFY SUMMARY` block, the requirements table with each row's ✅/❌ and evidence, the correctness-review outcome, and every caveat / deferred requirement / follow-up. `sl-issue` moves the card to **"In review"** off that report — it owns the board move, and it only makes it if a PR URL came back. If verification never went green, return `SHIP-FAILED:` with the findings instead of a PR URL, so the card correctly stays in "In progress". Run standalone, there's no board interaction here.
 
 ## Output
 Report: what simplify/code-review changed, the verification verdict, and the PR URL — so the user can go straight into review.

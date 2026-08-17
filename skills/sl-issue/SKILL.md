@@ -136,10 +136,31 @@ git -C "$SL_BASE_PATH/IntegrationService" push
 ```
 Imperative subject scoped to the step, a one-line body, and a `Refs #<n>` trailer. End the commit body with the Co-Authored-By trailer the harness instructions specify for the current model.
 
-### 4. Ship it — `sl-ship`  (with the checklist threaded in)
-Invoke **`sl-ship`** on the finished change. Tell it this work originated from issue `#<n>` and pass the **path to the requirements checklist**. sl-ship runs its pipeline — quality (`simplify` + `/code-review`) → `sl-verify` (looping until green, including the requirements-traceability pass) → PR — and:
-- **`sl-verify`** maps each checklist row → real evidence (code/test/endpoint response/screenshot) and marks it ✅/❌. Any unmet requirement is a FAIL that loops back to step 3, exactly like a surface failure.
+### 4. Ship it — hand off to `sl-ship` in a FRESH agent  ← never run the pipeline in this context
+
+**Authoring ends here.** Your context now holds the issue + comments, every file you read while planning, the whole implementation diff, and every commit message. Invoking `sl-ship` inline stacks `simplify`, the verification loop, the repair rounds and the PR write-up *on top of that* — and because the full context is re-read on every tool call, the pipeline costs several times more here than it does in a fresh thread. Measured runs peaked at 400–560K context and spent ~90% of their tokens re-reading their own history; the driver agent alone was two-thirds of the cost of an entire issue.
+
+So **dispatch `sl-ship` as a separate agent** — Agent tool, `subagent_type: general-purpose`, `run_in_background: false` (you need its verdict before step 6). Nothing is lost by starting it cold: the work is **committed and pushed** (step 3), and the checklist lives **outside the repo**, so every input it needs is on disk rather than in your head.
+
+**The handoff brief must carry all of this** — a ship agent that has to ask you for context defeats the purpose:
+
+1. **The invocation** — "Invoke the `sl-ship` skill (Skill tool, `skill: sl-ship`) and follow it end to end."
+2. **Environment** — ⚠️ env vars do **not** cross an agent boundary. Spell out the exports verbatim, or a worktree run silently ships from the main checkout:
+   ```bash
+   export SL_REAL_BASE="<the true base, e.g. /Users/danieljohnston/git/Searchlight>"
+   export SL_BASE_PATH="<$ROOT from step 2.5, or the same as SL_REAL_BASE with --skip-worktree>"
+   ```
+3. **The change** — the branch name and the base it was cut from (`origin/main` as of step 2.5). Tell it to read the diff itself (`git -C "$SL_BASE_PATH/IntegrationService" diff origin/main...HEAD`) rather than pasting the diff into the prompt.
+4. **The issue** — `Zangow/IntegrationService#<n>` + URL, and the **absolute path to the requirements checklist** (`${SL_REAL_BASE}/.sl-issue/REQUIREMENTS-<n>.md`).
+5. **What you already know** — anything a cold reader can't recover from the diff: requirements you moved out of scope and why, an ambiguity you resolved with the user, an `sl-plan` plan you amended (including its `### Ops / rollout` section, which must reach the PR body), the test levels you landed per row, and whether each new AT was actually **run** against a live target. Keep this to a short list of facts, **not** your authoring reasoning — the point of a fresh context is that it reads the code without your rationalizations.
+6. **Its authority** — "You own the repair loop: if verification FAILs, fix the code, commit, push, and re-verify **within `sl-verify`'s 2-round cap**. If it is still not green at the cap, stop and return `SHIP-FAILED:` with the verifier findings verbatim — do not keep looping."
+7. **The return contract** — "End your final message with: the PR URL; the `VERIFY SUMMARY` block; the requirements table with each row's ✅/❌ and evidence; the correctness-review outcome; and every caveat / deferred requirement / follow-up."
+
+sl-ship then runs its normal pipeline — `simplify` → `sl-verify` (looping until green, including the requirements-traceability pass) → PR → `code-review` — and:
+- **`sl-verify`** maps each checklist row → real evidence (code/test/endpoint response/screenshot) and marks it ✅/❌. Any unmet requirement is a FAIL the ship agent repairs, subject to the same 2-round cap.
 - The PR embeds the satisfied-requirements table and adds the **`Refs`** link (step 5).
+
+**If it returns `SHIP-FAILED:`** — do **not** re-dispatch a second ship agent and do not start fixing in this context (that reintroduces exactly the cost this step removes). Report the failure with the findings, leave the branch and worktree in place, and **do not move the card to "In review"** (step 6 is contingent on a PR existing). When invoked under `sl-issues`, that report is what the driver reads.
 
 ### 5. Link the issue — without auto-closing  (handled inside sl-ship's PR step)
 The PR must **reference** the issue but must **not** auto-close it on merge — issues are closed manually. Use a plain, non-closing reference:
@@ -174,4 +195,5 @@ Report: the issue title + URL, **whether an `sl-plan` plan of record was adopted
 - **Board status is a convenience, not a gate**: "In progress" / "In review" moves never block the actual change.
 - The checklist is the contract. An unaddressed row is a FAIL, not a caveat.
 - **Tests: AT by default, extend before adding, unit/integration always.** A feature or fix without acceptance coverage needs a stated reason (step 3); so does a new spec where an existing one could have been extended. An AT is never a substitute for the unit/integration layer — and since `acceptanceTest` sits outside `./gradlew check`, a new AT you never actually ran isn't coverage, it's a guess.
+- **The ship handoff is not optional.** `sl-ship` runs in its own fresh agent (step 4), never inline. Authoring context is the most expensive thing in this pipeline and the ship pipeline is the longest part of it — running them in one thread is what turns a $40 issue into a $150 one. If the ship agent comes back `SHIP-FAILED:`, report it and leave the card in "In progress"; don't retry it here.
 - Each downstream step is still runnable on its own; `sl-issue` just adds fetch + author in front of `sl-ship`.

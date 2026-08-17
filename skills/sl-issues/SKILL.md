@@ -100,6 +100,7 @@ Autonomy is not "merge regardless". In each of these cases: **do not merge, leav
 
 - The run returned **`BLOCKED:`** — file the blocking question and the options it proposed, verbatim. **Don't answer it, and don't enqueue it** (see the third row above).
 - The run **produced no PR** — it crashed, timed out, or returned a report with no PR URL. There is nothing to merge; don't reach for a `<pr>` that doesn't exist.
+- The run returned **`SHIP-FAILED:`** — its ship agent hit `sl-verify`'s 2-round repair cap without going green. File the verifier findings verbatim as the takeaway card. **Don't re-dispatch the item to burn a third round**: two rounds that didn't converge mean the diagnosis is wrong, and a fresh full run pays for the whole issue again to reach the same wall. It needs a human or a targeted follow-up card, not a retry.
 - The PR is **not cleanly mergeable** (conflicts, `mergeStateStatus` not clean).
 - **`gh pr merge` itself fails** after a clean pre-check — branch protection, or a push that landed in between. Stop the close-out block there: do **not** close the issue or move the card.
 - The run reported a **failed or missing verification**, or a red `./gradlew check`.
