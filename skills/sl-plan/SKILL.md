@@ -173,7 +173,7 @@ A plan nobody checked is worth less than no plan, because it gets trusted. Run t
 (Panel roster + effort per `_shared/model-orchestration.md`.)
 - **1× `general-purpose`, `model: opus`** — *will this plan actually satisfy every checklist row, and what breaks?*
 - **Adjudicate the union** — reconcile the panel yourself if this thread is Opus, otherwise dispatch **`subagent_type: sl-adjudicator`** (opus @ `effort: high`). A cheap-lens flag is a candidate, not a verdict; a plan rewritten around a false positive costs more than the panel saved.
-- **1–2× `general-purpose`, `model: sonnet`** — cheap decorrelated breadth: edge cases, missed states, simpler alternative. Keep at least one non-Opus voice so a systematic Opus blind spot can't survive. (This is the repo's standing Opus + Sonnet spot-check convention, moved to plan time where it's cheapest to act on.)
+- **1–2× `sl-panel-reviewer`** (`subagent_type: sl-panel-reviewer` — sonnet @ `effort: medium` by definition; the cheap tier *and* the cheap effort are the point) — decorrelated breadth: edge cases, missed states, simpler alternative. Keep at least one non-Opus voice so a systematic Opus blind spot can't survive. (This is the repo's standing Opus + Sonnet spot-check convention, moved to plan time where it's cheapest to act on.)
 
 Give each a distinct lens where you can — correctness/traceability · integration-contract & live-data blast radius · ops/deploy/migration ordering.
 

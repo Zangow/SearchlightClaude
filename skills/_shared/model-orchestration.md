@@ -60,7 +60,7 @@ without losing the escalation path.
 | Verify (behaviour + requirements) | **Sonnet**, → Opus for contract / persistence / auth / requirements gates | **medium** | `sl-verify-runner` |
 | Ground the plan in real files | inherit | inherit | `Explore` |
 | Review panel — depth lens | **Opus** | **high** | `general-purpose` + `model: opus` |
-| Review panel — breadth lenses | **Sonnet** | inherit | `general-purpose` + `model: sonnet` |
+| Review panel — breadth lenses (×1–2) | **Sonnet** | **medium** | `sl-panel-reviewer` |
 | Mechanical checks (build/test/lint) | — | — | **inline, main thread** — an exit code has no authoring bias |
 
 ## Notes
@@ -75,6 +75,9 @@ without losing the escalation path.
   model**: it is just as mechanical, but it ships production, and the saving on a handful of short
   runs doesn't justify a cheaper tier misreading a deploy gate.
 - **The agent definitions this policy depends on** live in `.claude/agents/`: `sl-verify-runner`
-  (sonnet/medium), `sl-adjudicator` (opus/high). Changing a role's effort means editing that file —
-  editing this doc alone does nothing.
+  (sonnet/medium), `sl-panel-reviewer` (sonnet/medium), `sl-adjudicator` (opus/high). Changing a
+  role's effort means editing that file — editing this doc alone does nothing.
+- **Why the breadth lenses run at medium effort:** they exist for *decorrelation*, not depth.
+  The value is that a different model has different blind spots — not that it deliberated longer.
+  Raising their effort buys almost nothing and costs on every panel.
 - **Applies to:** `sl-issue`, `sl-issues`, `sl-ship`, `sl-verify`, `sl-plan`, `sl-subtask`.
