@@ -1,6 +1,7 @@
 ---
 name: sl-deploy
 description: Deploy the Searchlight IntegrationService to QA or PROD — a single front door over the repo's deploy scripts for any combination of the backend service, the admin UI, and the customer embed/website component. Asks which components and which environment, runs preflight (clean tree, Docker, AWS profile/region), enforces a hard PROD confirmation gate, then verifies the service reaches steady state + smoke passes and (for backend) the image replicates into prod's region (us-east-1). A request that names BOTH environments is run as a promote sequence — QA deploy, then a MANDATORY acceptance-test (AT) gate against QA that must PASS before PROD is touched. Use when asked to "deploy", "ship/release to qa|prod", "deploy the backend/admin/website", or "push a build to <env>".
+effort: medium
 ---
 
 # sl-deploy — deploy IntegrationService to QA or PROD

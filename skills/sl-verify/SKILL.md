@@ -1,6 +1,7 @@
 ---
 name: sl-verify
 description: Orchestrate independent verification of a Searchlight IntegrationService change — runs the mechanical checks (compile/build, tests, lint) inline, then dispatches one fresh verification agent (no authoring bias) to check real runtime behavior plus requirements traceability when the change came from an issue, and loops until everything passes. Use after making a change and before opening a PR, or when asked to "verify my work / verify this change / make sure it works".
+effort: high
 ---
 
 # sl-verify — orchestrate independent, unbiased verification (Searchlight)

@@ -1,6 +1,7 @@
 ---
 name: sl-issues
 description: Batch front door over `sl-issue` — takes one or more Searchlight IntegrationService issue numbers/URLs (space-delimited, e.g. `/sl-issues 171 173 186`), expands each into its native GitHub sub-issues (recursively, parent-first), drops anything CLOSED or already ASSIGNED (to anyone, including you — that means it's already been picked up), and works the remaining queue ONE AT A TIME. Per item it assigns the issue to you, dispatches a fresh context-isolated subagent to run `/sl-issue` on it, reports that run's results (PR, requirements, caveats, follow-ups) back for you to interact with, then offers to merge the PR and remove the worktree before asking whether to start the next one. Pass `--keepGoing` to run the whole batch autonomously instead — no pauses at all: each run's takeaways are filed as new cards under the same parent (critical ones inserted next in the queue, the rest appended), and every item is closed out automatically (merge the PR, close the issue, move the card to Done, remove the worktree). Use when asked to "work issues 1 2 3", "run this batch of Searchlight tickets", "do issue X and its subtasks", or when handed several issue numbers to implement end-to-end.
+effort: medium
 ---
 
 # sl-issues — batch queue over `sl-issue` (Searchlight)
@@ -166,7 +167,7 @@ gh issue edit <n> --repo Zangow/IntegrationService --add-assignee @me
 If it was closed or picked up in the meantime, **don't work it** — report the change and move to step 4e (next item). `sl-issue` also assigns `@me` — that's a harmless no-op; this earlier claim is the gate that stops a second session grabbing the same ticket mid-run.
 
 ### 4b. Dispatch a fresh `/sl-issue` subagent  ← new thread, clean context
-One subagent per item, **`subagent_type: general-purpose`**, **`model: opus`** (authoring is a core role), **`run_in_background: false`** — you need the result before continuing, and the queue is deliberately serial. Nothing from the previous item leaks into this one.
+One subagent per item, **`subagent_type: sl-core-worker`** (opus @ **high** effort by definition — authoring is a core role, and the Agent tool has no `effort` param, so a bare `general-purpose` + `model: opus` dispatch would silently inherit the session default), **`run_in_background: false`** — you need the result before continuing, and the queue is deliberately serial. Nothing from the previous item leaks into this one.
 
 **Concurrency budget — cap the fan-out inside the item.** The queue being serial bounds *your* dispatches to one at a time, but it does **not** bound the child's: `sl-issue` calls `sl-ship`, which runs a multi-agent `code-review` panel and `sl-verify`, each of which can fan out again. Nested panels multiply, and a single item has been seen running dozens of threads at once — which mostly buys contention, not throughput. Two gradle builds in one worktree alone fake a ~60-class failure.
 

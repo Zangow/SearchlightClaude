@@ -1,6 +1,7 @@
 ---
 name: sl-subtask
 description: Decomposition front door that breaks one oversized Searchlight IntegrationService card into 3–12 PR-sized native GitHub sub-issues — pulls the card via gh, grounds itself in the real IntegrationService code to find the seams, cuts the work so each subtask is one surface / one deploy footprint / one verification surface / one reviewable PR a single fresh Claude context can finish, orders them into a strictly linear work order with explicit `Depends on` dependencies (capability before config, deploy seams called out, at most one Flyway migration per line, main green after every merge), runs the breakdown past a fresh coverage-and-ordering review panel, then — after one checkbox gate — files the subtasks in order, links them as native sub-issues, boards them in the parent's column, labels the parent `epic`, and posts the work order + dependency graph back onto the parent card. Use when asked to "break this card up / split this ticket into subtasks / create sub-issues for #n / this card is way too big for one PR". Writes no code, cuts no branch, opens no PR — hand the result to `/sl-issues <parent>` to build it.
+effort: high
 ---
 
 # sl-subtask — one oversized card → an ordered set of PR-sized sub-issues (Searchlight)
@@ -181,7 +182,7 @@ actually gets run (`scripts/run-acceptance.sh local` against a booted stack).>
 A breakdown nobody checked is worse than none, because the queue trusts it. Run it past fresh, **context-isolated** reviewers — they get the parent issue, the step-2 grounding, and the **proposed breakdown**, never your reasoning for it. Scale the panel to size (a 3-card split doesn't need three reviewers):
 
 (Panel roster + effort per `_shared/model-orchestration.md`.)
-- **1× `general-purpose`, `model: opus`** — *coverage*: does the union of these cards deliver the whole parent? What fell **between** two cards? Is any card too big for one context or one reviewable PR?
+- **1× `sl-depth-reviewer`** (`subagent_type: sl-depth-reviewer` — opus @ `effort: high` by definition; dispatch it by type, not as `general-purpose` + `model: opus`, which would inherit the session effort) — *coverage*: does the union of these cards deliver the whole parent? What fell **between** two cards? Is any card too big for one context or one reviewable PR?
 - **Adjudicate the union** — reconcile the panel yourself if this thread is Opus, otherwise dispatch **`subagent_type: sl-adjudicator`** (opus @ `effort: high`). A cheap-lens flag is a candidate, not a verdict; re-cutting a breakdown around a false positive costs more than the panel saved.
 - **1–2× `sl-panel-reviewer`** (`subagent_type: sl-panel-reviewer` — sonnet @ `effort: medium` by definition; the cheap tier *and* the cheap effort are the point) — decorrelated breadth: ordering and dependency errors, a card that secretly spans two surfaces, duplicated work across cards, missed empty/error/credential-expiry/rate-limit work, a card that can't actually start where the line says it can.
 

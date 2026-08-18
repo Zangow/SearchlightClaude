@@ -1,6 +1,7 @@
 ---
 name: sl-issue
 description: Front door that turns a Searchlight IntegrationService GitHub issue into a shipped PR — pulls the issue (title, body, comments, labels) via gh, assigns it to the user and moves its card to "In progress" on the Searchlight Integration Service board, extracts a structured requirements checklist, adopts a persisted sl-plan plan of record when the card carries one (verifying it exists and still holds first, and re-planning only what drifted) or plans from scratch when it doesn't, implements the change, then runs the full sl-ship pipeline (quality → independent verify → PR) with a requirements-traceability gate and a Refs #n link so the PR cross-links the issue (without auto-closing it). On completion it moves the card to "In review". Use when asked to "/sl-issue <n> / work this Searchlight issue / pick up IntegrationService issue <n>".
+effort: high
 ---
 
 # sl-issue — GitHub issue → implemented → shipped PR (Searchlight)
@@ -110,7 +111,7 @@ git -C "$SL_BASE_PATH/IntegrationService" push -u origin <branch>   # publish im
 
 Otherwise, plan the change against the checklist **inline, in the main thread** — you have to load the relevant files to implement anyway, so a separate planning agent just pays to read the same context twice. Planning and authoring are **core roles — keep them on the strongest available model**; reserve cheaper models for the review/verify panels downstream.
 
-**Plan-review gate (contract-level changes only; skipped when a reviewed `sl-plan` plan was adopted).** Dispatch a fresh plan reviewer (Agent tool, `general-purpose`) before writing code **only when** the plan changes a published contract/schema, an external integration contract, or persistence/migrations — the class of change where a wrong plan is expensive to unwind. Hand it the issue, the requirements checklist, and your written plan; ask: will this plan meet every checklist row? what will break? what's simpler? Fold blockers into the plan before implementing. For everything else, skip the gate — plans are cheap to revise mid-implementation, and the verification loop is the real safety net.
+**Plan-review gate (contract-level changes only; skipped when a reviewed `sl-plan` plan was adopted).** Dispatch a fresh plan reviewer (Agent tool, **`subagent_type: sl-depth-reviewer`** — opus @ high by definition) before writing code **only when** the plan changes a published contract/schema, an external integration contract, or persistence/migrations — the class of change where a wrong plan is expensive to unwind. Hand it the issue, the requirements checklist, and your written plan; ask: will this plan meet every checklist row? what will break? what's simpler? Fold blockers into the plan before implementing. For everything else, skip the gate — plans are cheap to revise mid-implementation, and the verification loop is the real safety net.
 
 **Derive tests from the checklist, not the code.** Turn each testable checklist row into a named test (`R3 → test('…')`) so the requirements pass in `sl-verify` maps rows → tests directly. Post-hoc tests encode what the code *does*, not what the issue *required*.
 
@@ -140,7 +141,7 @@ Imperative subject scoped to the step, a one-line body, and a `Refs #<n>` traile
 
 **Authoring ends here.** Your context now holds the issue + comments, every file you read while planning, the whole implementation diff, and every commit message. Invoking `sl-ship` inline stacks `simplify`, the verification loop, the repair rounds and the PR write-up *on top of that* — and because the full context is re-read on every tool call, the pipeline costs several times more here than it does in a fresh thread. Measured runs peaked at 400–560K context and spent ~90% of their tokens re-reading their own history; the driver agent alone was two-thirds of the cost of an entire issue.
 
-So **dispatch `sl-ship` as a separate agent** — Agent tool, `subagent_type: general-purpose`, `run_in_background: false` (you need its verdict before step 6). Nothing is lost by starting it cold: the work is **committed and pushed** (step 3), and the checklist lives **outside the repo**, so every input it needs is on disk rather than in your head.
+So **dispatch `sl-ship` as a separate agent** — Agent tool, **`subagent_type: sl-core-worker`** (opus @ high by definition; `sl-ship` repairs code, which is authoring), `run_in_background: false` (you need its verdict before step 6). Nothing is lost by starting it cold: the work is **committed and pushed** (step 3), and the checklist lives **outside the repo**, so every input it needs is on disk rather than in your head.
 
 **The handoff brief must carry all of this** — a ship agent that has to ask you for context defeats the purpose:
 

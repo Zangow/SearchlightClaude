@@ -2,6 +2,7 @@
 name: sl-start-env
 description: Boot the local Searchlight IntegrationService environment for testing — the Docker deps (Postgres 16 + LocalStack S3/SecretsMgr/SQS), the Spring Boot service under the local profile (port 8080, Flyway against the LOCAL DB), and/or the React admin UI and the Lit customer web-component (ui-embed) dev servers. Idempotent — checks what's already up and reuses it. Use before sl-verify / the acceptance pack, or when asked to "start the environment / run everything locally / spin up the local stack".
 model: sonnet
+effort: low
 ---
 
 # sl-start-env — bring up the local IntegrationService environment

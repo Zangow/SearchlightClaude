@@ -2,6 +2,7 @@
 name: sl-start-embed
 description: Start a local test website that hosts the Searchlight customer embed (the <searchlight-integrations> Lit web component) pointed at a DEPLOYED environment — QA or PROD — then watch it and verify it actually comes up. Wraps scripts/sl-start-embed, which serves a local page carrying the component and same-origin-proxies /api + /oauth to that env's backend with the website API key injected server-side (so there's no CORS problem and no infra change). Use when asked to "start/kick off the embed", "open the embed against qa|prod", "test the web component on qa|prod", or "spin up the embed test page". NOT for the local dev stack — that's sl-start-env.
 model: sonnet
+effort: low
 ---
 
 # sl-start-embed — host the customer embed against a deployed env, and verify it

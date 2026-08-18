@@ -1,6 +1,7 @@
 ---
 name: sl-ship
 description: End-to-end "close the loop" orchestrator for a Searchlight IntegrationService change — runs a quality pass (simplify + code-review), independent verification (sl-verify, looping until green), then commits, pushes, and opens a review-ready PR with a Refs #n link when issue-driven. Use when a change is code-complete and you want it taken all the way to a PR, or when asked to "ship it / close the loop / finish and put up for review".
+effort: high
 ---
 
 # sl-ship — code-complete → review-ready PR (Searchlight)

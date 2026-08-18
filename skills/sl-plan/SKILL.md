@@ -1,6 +1,7 @@
 ---
 name: sl-plan
 description: Planning-only front door that turns a Searchlight IntegrationService GitHub issue into a proper, reviewed implementation plan and persists it on the card — pulls the issue via gh, grounds itself in the real IntegrationService code (file:line, not guesses), works through the clarifying questions WITH you interactively, authors a step-by-step plan, runs it past a fresh plan-review panel, then writes it back to the issue as a comment (default) or an appended description section. Records the Searchlight-specific footprint every ticket needs — config-only vs platform capability, Flyway migration, backend/UI/embed/infra deploy, and which live integration configs must be republished afterwards. The persisted plan becomes the plan of record a later sl-issue follows instead of re-planning from scratch. Use when asked to "plan this issue / write a plan for #n / think through this ticket before we build it / put a plan on the card". Writes no code, cuts no branch, opens no PR.
+effort: high
 ---
 
 # sl-plan — GitHub issue → a reviewed plan, persisted on the card (Searchlight)
@@ -86,7 +87,7 @@ Don't ask what you can read: resolve anything the code already answers via step 
 **Record every answer.** Resolved clarifications go into the plan's *Resolved clarifications* section (step 4) and land on the card in step 6 — so the ticket, not this transcript, is the source of truth.
 
 ### 4. Author the plan
-Write the plan yourself on the strongest available model (core role). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
+Write the plan yourself on the strongest available model (core role). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`, **`model: opus`**; note the built-in `Plan` agent pins no effort, so it inherits the session default — for a hard design call prefer **`sl-core-worker`**, which pins opus @ high) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
 
 Write it to a stable, non-repo path so nothing lands in the repo's history and downstream skills can read it:
 ```
@@ -171,7 +172,7 @@ Name the LEVEL for each: **unit** for pure logic, **integration** (Testcontainer
 A plan nobody checked is worth less than no plan, because it gets trusted. Run the plan past fresh, **context-isolated** reviewers — they get the issue, the grounding, and the **plan**, never your reasoning for it. Scale the panel to blast radius (a one-line config tweak doesn't need three reviewers):
 
 (Panel roster + effort per `_shared/model-orchestration.md`.)
-- **1× `general-purpose`, `model: opus`** — *will this plan actually satisfy every checklist row, and what breaks?*
+- **1× `sl-depth-reviewer`** (`subagent_type: sl-depth-reviewer` — opus @ `effort: high` by definition; dispatch it by type, not as `general-purpose` + `model: opus`, which would inherit the session effort) — *will this plan actually satisfy every checklist row, and what breaks?*
 - **Adjudicate the union** — reconcile the panel yourself if this thread is Opus, otherwise dispatch **`subagent_type: sl-adjudicator`** (opus @ `effort: high`). A cheap-lens flag is a candidate, not a verdict; a plan rewritten around a false positive costs more than the panel saved.
 - **1–2× `sl-panel-reviewer`** (`subagent_type: sl-panel-reviewer` — sonnet @ `effort: medium` by definition; the cheap tier *and* the cheap effort are the point) — decorrelated breadth: edge cases, missed states, simpler alternative. Keep at least one non-Opus voice so a systematic Opus blind spot can't survive. (This is the repo's standing Opus + Sonnet spot-check convention, moved to plan time where it's cheapest to act on.)
 
