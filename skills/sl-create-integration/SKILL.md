@@ -1,6 +1,7 @@
 ---
 name: sl-create-integration
 description: Author a best-first-attempt Searchlight integration config for ANY third-party platform's API — investigate its docs, classify ingestion mode and auth, map every category onto the 6 standard schemas (with transforms + config-driven hydration), self-test through the admin mapping-preview / dry-run endpoints, verify the draft with a fresh subagent, and SAVE it as a draft (never publish) with a handoff report for human review. Use when asked to "create/onboard/set up an integration", "build a config for <platform>", or "map <platform>'s API onto the standard schemas".
+model: sonnet
 ---
 
 # sl-create-integration

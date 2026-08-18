@@ -180,7 +180,9 @@ actually gets run (`scripts/run-acceptance.sh local` against a booted stack).>
 ### 6. Breakdown-review gate  ← before anything is filed
 A breakdown nobody checked is worse than none, because the queue trusts it. Run it past fresh, **context-isolated** reviewers — they get the parent issue, the step-2 grounding, and the **proposed breakdown**, never your reasoning for it. Scale the panel to size (a 3-card split doesn't need three reviewers):
 
+(Panel roster + effort per `_shared/model-orchestration.md`.)
 - **1× `general-purpose`, `model: opus`** — *coverage*: does the union of these cards deliver the whole parent? What fell **between** two cards? Is any card too big for one context or one reviewable PR?
+- **Adjudicate the union** — reconcile the panel yourself if this thread is Opus, otherwise dispatch **`subagent_type: sl-adjudicator`** (opus @ `effort: high`). A cheap-lens flag is a candidate, not a verdict; re-cutting a breakdown around a false positive costs more than the panel saved.
 - **1–2× `general-purpose`, `model: sonnet`** — cheap decorrelated breadth: ordering and dependency errors, a card that secretly spans two surfaces, duplicated work across cards, missed empty/error/credential-expiry/rate-limit work, a card that can't actually start where the line says it can.
 
 Give each a distinct lens where you can — coverage & traceability · ordering, migrations and deploy seams · integration-contract and live-data blast radius.
