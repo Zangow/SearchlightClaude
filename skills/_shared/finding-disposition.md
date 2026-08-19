@@ -24,6 +24,7 @@ gets exactly:
 | 1 | **`code-review --fix`** on the working tree (`sl-ship` step 1; `medium` by default) | yes — this is the fixing review |
 | 2 | **`sl-verify`** behavioural + requirements | yes — **one** repair round, Critical/High FAIL only |
 | 3 | **`code-review:code-review` (plugin) on a draft PR** | no — **only** as `sl-ship` step 1's fallback |
+| 4 | **One cold-agent handoff** (`sl-verify` step 3) | yes — **one per run, ever**, and only when row 2 came back genuinely close |
 
 Row 3 is not a routine step. It exists in one place: when the built-in `code-review` fails to launch,
 the plugin reviews a draft PR instead. It **replaces** row 1; it does not add to the budget.
@@ -32,8 +33,10 @@ Once the PR is open the pipeline stops editing code and the human review gate ta
 reading the run's report and approving the merge in `sl-issues` step 4c/4d. That gate is mandatory:
 `sl-issues` has no unattended mode, and reintroducing one would remove the only reader between row 1
 and `main`. Nothing else starts a code edit.
-over a diff the first pass just rewrote always finds fresh Medium/Low material to rewrite again, and
-that is how one review becomes a sweep with no natural end.
+
+**Do not add a review of your own fixes.** A second pass over a diff the first pass just rewrote
+always finds fresh Medium/Low material to rewrite again, and that is how one review becomes a sweep
+with no natural end.
 
 **Effort follows the disposition.** Review effort above `medium` is documented as *broader coverage,
 may include uncertain findings* — which is precisely the Medium/Low band this policy drops. Running a
