@@ -1,8 +1,8 @@
 # Finding disposition — fix it now, or drop it
 
-Applies to **every self-review finding a run generates about its own work**: `simplify`,
-`code-review` on the PR, `sl-verify` caveats, and anything a review panel nominates during
-`sl-plan` / `sl-subtask` / `sl-issue` / `sl-ship`.
+Applies to **every self-review finding a run generates about its own work**: the `code-review --fix`
+pass in `sl-ship` step 1, `sl-verify` verdicts and caveats, and anything a review panel nominates
+during `sl-plan` / `sl-subtask` / `sl-issue` / `sl-ship`.
 
 ## The rule
 
@@ -13,6 +13,36 @@ A card is finished when its own acceptance criteria are met and nothing critical
 outstanding. It is *not* finished only once every observation anyone made about the code has
 its own ticket. Spawning follow-up cards is the failure mode this policy exists to stop: it is
 how a single ticket turns into an open-ended tree that never closes.
+
+## The budget — one review that fixes, one round that repairs
+
+The rule above says *what* to fix. This says *how many times you are allowed to go back in*. A run
+gets exactly:
+
+| # | Pass | May edit code? |
+|---|------|----------------|
+| 1 | **`code-review --fix`** on the working tree (`sl-ship` step 1; `medium` by default) | yes — this is the fixing review |
+| 2 | **`sl-verify`** behavioural + requirements | yes — **one** repair round, Critical/High FAIL only |
+| 3 | **`code-review:code-review` (plugin) on a draft PR** | no — **only** as `sl-ship` step 1's fallback |
+
+Row 3 is not a routine step. It exists in one place: when the built-in `code-review` fails to launch,
+the plugin reviews a draft PR instead. It **replaces** row 1; it does not add to the budget.
+
+Once the PR is open the pipeline stops editing code and the human review gate takes over — the user
+reading the run's report and approving the merge in `sl-issues` step 4c/4d. That gate is mandatory:
+`sl-issues` has no unattended mode, and reintroducing one would remove the only reader between row 1
+and `main`. Nothing else starts a code edit.
+over a diff the first pass just rewrote always finds fresh Medium/Low material to rewrite again, and
+that is how one review becomes a sweep with no natural end.
+
+**Effort follows the disposition.** Review effort above `medium` is documented as *broader coverage,
+may include uncertain findings* — which is precisely the Medium/Low band this policy drops. Running a
+broad pass to then discard most of its output is pure waste, and `--fix` has no severity filter, so
+the discarded band gets *applied to the diff* before you can drop it. Default `medium`; spend `high`
+only when `sl-ship` step 1's trigger list fires — `--thorough`, or a diff touching auth/permissions,
+credentials/secrets, persistence/migrations, an external integration contract, or a published
+API/schema contract, or exceeding ~500 changed lines. `sl-ship` step 1 and `sl-verify`'s
+model-escalation policy carry the same list; if you change it, change all three.
 
 ## Severity ladder
 

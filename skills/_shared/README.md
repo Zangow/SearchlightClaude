@@ -28,8 +28,8 @@ Reference it from a skill like:
 > **Finding disposition:** follows `_shared/finding-disposition.md`.
 ```
 
-**Applies to:** `sl-ship` (step 1 `/code-review --fix`, step 3.5 on the PR), `sl-issue`,
-`sl-plan`, `sl-subtask`, and `sl-issues --keepGoing`'s takeaway filing.
+**Applies to:** `sl-ship` (step 1 `code-review --fix` — the run's only scheduled review), `sl-issue`,
+`sl-plan`, `sl-subtask`, and `sl-issues`' takeaway filing.
 
 ## Scripts
 

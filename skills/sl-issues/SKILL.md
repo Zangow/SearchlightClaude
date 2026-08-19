@@ -1,6 +1,6 @@
 ---
 name: sl-issues
-description: Batch front door over `sl-issue` — takes one or more Searchlight IntegrationService issue numbers/URLs (space-delimited, e.g. `/sl-issues 171 173 186`), expands each into its native GitHub sub-issues (recursively, parent-first), drops anything CLOSED or already ASSIGNED (to anyone, including you — that means it's already been picked up), and works the remaining queue ONE AT A TIME. Per item it assigns the issue to you, dispatches a fresh context-isolated subagent to run `/sl-issue` on it, reports that run's results (PR, requirements, caveats, follow-ups) back for you to interact with, then offers to merge the PR and remove the worktree before asking whether to start the next one. Pass `--keepGoing` to run the whole batch autonomously instead — no pauses at all: each run's takeaways are filed as new cards under the same parent (critical ones inserted next in the queue, the rest appended), and every item is closed out automatically (merge the PR, close the issue, move the card to Done, remove the worktree). Use when asked to "work issues 1 2 3", "run this batch of Searchlight tickets", "do issue X and its subtasks", or when handed several issue numbers to implement end-to-end.
+description: Batch front door over `sl-issue` — takes one or more Searchlight IntegrationService issue numbers/URLs (space-delimited, e.g. `/sl-issues 171 173 186`), expands each into its native GitHub sub-issues (recursively, parent-first), drops anything CLOSED or already ASSIGNED (to anyone, including you — that means it's already been picked up), and works the remaining queue ONE AT A TIME. Per item it assigns the issue to you, dispatches a fresh context-isolated subagent to run `/sl-issue` on it, reports that run's results (PR, requirements, caveats, follow-ups) back for you to interact with, then offers to merge the PR and remove the worktree before asking whether to start the next one. This skill is always interactive — there is no unattended mode: nothing merges to `main` without a human reading the run's report and approving the merge. Use when asked to "work issues 1 2 3", "run this batch of Searchlight tickets", "do issue X and its subtasks", or when handed several issue numbers to implement end-to-end.
 effort: medium
 ---
 
@@ -17,26 +17,16 @@ Space-delimited issue numbers and/or URLs — `/sl-issues 171`, `/sl-issues 173 
 
 **Flags:**
 - `--skip-worktree` — passed straight through to each `sl-issue` run.
-- `--keepGoing` (also accepted: `--keep-going`) — **driver-level, not passed to the child run.** Turns the batch autonomous: no pauses, takeaways filed as cards and folded back into the queue, and each item closed out (merge → complete → worktree removed) without asking. See below.
 
 **Concurrency is capped at 4 subagents in flight per item, flag or no flag** — see 4b.
 
-## `--keepGoing` — autonomous batch mode
+## Filing takeaways — the bar is high, and it is not the default
 
-Without the flag this skill pauses three times per item and the user decides. With `--keepGoing` it **never pauses**: it makes the default choice at every gate, keeps working until the queue is exhausted, and reports once at the end.
+This skill is **always interactive**: it pauses three times per item and you decide. There is no autonomous mode and no flag that removes the pauses — work does not reach `main` in this repo without a human looking at it. If you want a run to keep going unattended, that is a deliberate change to this skill, not a flag.
 
-**What the user is trading away by passing it.** State this in one line when the batch starts, then don't repeat it: the results-review pause (4c) and the merge gate (4d) are where a wrong-but-plausible run normally gets caught, and `--keepGoing` removes both — work merges to `main` on the strength of the run's own verification and nothing else. That is the point of the flag, not a reason to second-guess it; it is opt-in and the user asked for it.
+So a takeaway is never filed behind your back. The driver **proposes** it at 4c with the severity and the exception it clears; you say file it or drop it. The bar below is what makes something worth proposing at all.
 
-**The four rules that replace the pauses:**
-
-1. **Never ask — take the default.** Step 3's question round is skipped: dropped items stay dropped, and an umbrella parent is dropped **only if it arrived as a sub-issue of something else**. A parent the user *named on the command line* is worked — silently discarding work they explicitly typed is not a default you get to take. Say what you defaulted to, and move on.
-2. **File takeaways as cards** (below) instead of surfacing them for a human to triage — but only the narrow set that clears the bar there. Filing nothing is the common case.
-3. **Close out every item automatically**: merge the PR, close the issue, move the card to `Done`, remove the worktree — in that order, per item, before starting the next.
-4. **Never guess on a `BLOCKED:` run.** Autonomy removes the *pauses*, not the *judgement*. A blocked run is not resolved by picking an option — see "When an item can't close out cleanly".
-
-### Filing takeaways — the bar is high, and it is not the default
-
-**Default: file nothing.** An `sl-issue` run is supposed to *finish* its card, not spawn the next three. Per `_shared/finding-disposition.md`, the child run has already fixed everything Critical/High in its own diff and dropped everything Medium/Low — so by the time a report reaches you, **most runs should have nothing to file.** If a batch is producing a card per item, that is the bug, not the feature. (#248 → #268 → fifteen open follow-ups is what this rule exists to prevent.)
+**Default: propose nothing.** An `sl-issue` run is supposed to *finish* its card, not spawn the next three. Per `_shared/finding-disposition.md`, the child run has already fixed everything Critical/High in its own diff and dropped everything Medium/Low — so by the time a report reaches you, **most runs should have nothing to file.** If a batch is producing a card per item, that is the bug, not the feature. (#248 → #268 → fifteen open follow-ups is what this rule exists to prevent.)
 
 A takeaway becomes a card **only** when it is **Critical or High severity** AND one of these is true:
 
@@ -58,7 +48,7 @@ REPO=Zangow/IntegrationService
 URL=$(gh issue create --repo "$REPO" \
   --title "<takeaway title>" \
   --body "$(cat <<'EOF'
-Filed automatically by `/sl-issues --keepGoing` from the run on #<item>.
+Filed from the `/sl-issues` run on #<item>, with the user's approval.
 
 **Severity:** Critical|High · **Why it wasn't fixed in-run:** <exception 1, 2, or 3>
 
@@ -87,36 +77,27 @@ Two REST calls, no GraphQL — the Projects/GraphQL quota is the first thing to 
 
 Write a **real card**, not a stub — the run has the evidence in hand and this is the only moment it exists. Leave a header field as `unknown` rather than guessing it. A takeaway filed as "investigate the thing" is worse than not filing it.
 
-### Where a takeaway goes in the queue
+### A filed card is not queue work
 
-Only exception-1 cards are ever enqueued — a **Critical** defect in code this batch will build on top of. Exception 2 (needs a decision or an ops action) and exception 3 (blocked) are **filed, never enqueued**: dispatching a run at an unanswerable question just burns an Opus run and invites the guess rule 4 forbids. They go in the final summary's decision list.
+Filing a card and *working* it are separate decisions, and only you make the second one. A takeaway you approve is filed and listed — it does **not** get inserted into this batch's queue. If one is critical enough that later items would be built on top of the problem (data loss, a security exposure, a broken `main`, or something that invalidates a card already shipped in this batch), **say so when you propose it** and ask whether to work it next; if the answer is yes, it enters the queue at 4a like any other item. Everything else is a card for later.
 
-| Kind | Test | Queue position |
-|---|---|---|
-| **Critical, exception 1** | It causes **data loss or corruption**; it is a **security exposure**; it **breaks `main` or a deploy**; it **blocks or invalidates a later item in this queue**; or it makes a **just-shipped card's acceptance criteria untrue**. | **Inserted as the next item** — worked before anything else, because everything after it is built on the problem. |
-| **High, exception 1** | Real defect, but the queue is still correct without it. | **Filed, not enqueued.** It's a card for later, not a detour now. |
-| **Exception 2 or 3** | Needs a human decision or an ops action, or is blocked. | **Filed, never enqueued.** Goes in the final summary's decision list. |
+### Two signals worth stopping for
 
-When in doubt it is **not** critical — a wrongly-promoted card reorders the batch and starves the work the user actually asked for. Inserted criticals are worked exactly like any other item: step 4a re-check, claim, dispatch.
+The queue is fixed once you start it, so it can't run away — but two patterns still mean *stop and report* rather than push on to the next item:
 
-### Keeping the queue bounded
+- **Filing rate:** if **3 consecutive items each produce a card**, stop before starting the next. Either the runs are ignoring `_shared/finding-disposition.md`, or something systemic is wrong with `main` — both are worse than a paused batch.
+- **Circuit breaker:** after **3 consecutive items that fail to close out cleanly**, stop and report. Usually a bad merge on `main` that every later base now carries, in which case continuing just burns the queue producing one critical finding per item.
 
-The queue is mutable, so it needs real limits. Track, in-session, **the list of cards this batch filed** — that list is the marker, not a label (don't invent one; `takeaway` does not exist in this repo and `gh` hard-fails on an unknown label, which would abort the create).
-
-- **Depth:** a card this batch filed may itself file takeaways, but those are **filed only, never enqueued** — the queue grows at most one level deep from what the user asked for.
-- **Breadth:** enqueue at most **1 takeaway per item**, and stop enqueuing entirely once the queue has grown past **1.5×** its original length. File the rest and list them.
-- **Filing rate is itself a signal:** if **3 consecutive items each file a card**, stop and report before starting the next. Either the runs are ignoring the disposition policy, or something systemic is wrong with `main` — both are worse than a paused batch.
-- **Circuit breaker:** after **3 consecutive items that fail to close out cleanly**, stop the batch and report. Something systemic is wrong — usually a bad merge on `main` that every later base now carries, in which case continuing just burns the queue filing one critical card per item.
-
-Report everything filed-but-not-enqueued, and any cap you hit, in the final summary.
+Track, in-session, the list of cards this batch filed — that list is the marker, not a label (don't invent one; `takeaway` does not exist in this repo and `gh` hard-fails on an unknown label, which would abort the create). Report everything filed, and either signal if you hit it, in the final summary.
 
 ### When an item can't close out cleanly
 
-Autonomy is not "merge regardless". In each of these cases: **do not merge, leave the worktree in place, file a takeaway card recording exactly what happened, and continue to the next item.** Carry the fact into the next subagent's prompt, because its base won't contain this item's work.
+In each of these cases: **do not merge, leave the worktree in place, and report it to the user** — with a proposed takeaway card recording exactly what happened, if it clears the bar above. If they choose to move on to the next item, carry the fact into the next subagent's prompt, because its base won't contain this item's work.
 
-- The run returned **`BLOCKED:`** — file the blocking question and the options it proposed, verbatim. **Don't answer it, and don't enqueue it** (see the third row above).
+- The run returned **`BLOCKED:`** — file the blocking question and the options it proposed, verbatim. **Don't answer it and don't guess** — put it to the user (4c).
 - The run **produced no PR** — it crashed, timed out, or returned a report with no PR URL. There is nothing to merge; don't reach for a `<pr>` that doesn't exist.
-- The run returned **`SHIP-FAILED:`** — its ship agent hit `sl-verify`'s 2-round repair cap without going green. File the verifier findings verbatim as the takeaway card. **Don't re-dispatch the item to burn a third round**: two rounds that didn't converge mean the diagnosis is wrong, and a fresh full run pays for the whole issue again to reach the same wall. It needs a human or a targeted follow-up card, not a retry.
+- The run returned **`SHIP-FAILED:`** — its ship agent hit `sl-verify`'s 1-round repair cap without going green. File the verifier findings verbatim as the takeaway card. **Don't re-dispatch the item to burn another round**: a round that didn't converge means the diagnosis is wrong, and a fresh full run pays for the whole issue again to reach the same wall. It needs a human or a targeted follow-up card, not a retry.
+- The run returned **`SHIP-BLOCKED: review-unavailable`** — **both** reviewers (the built-in `code-review` and the plugin fallback) failed to launch, so the item is code-complete but **unreviewed**. This is the one case that **stops the batch rather than moving on**: if both reviewers are unavailable for one item they are almost certainly unavailable for every item behind it, so continuing would produce a queue of code-complete, unreviewed branches. Halt the run, report both failures verbatim with the branch and worktree path, and ask the user to run `/code-review medium --fix` on that branch themselves. When they confirm it's done, **resume the `sl-issue` child via `SendMessage`** (the same mechanism the `BLOCKED:` path uses) with: *"The step-1 review has been run by the user on `<branch>` (`code-review medium --fix`, `<when>`). Re-dispatch your ship agent with that line in its brief so it skips step 1 and starts at step 2, then finish your normal post-ship duties."* Resume the child, not the ship agent directly — the driver never held the ship brief (`SL_BASE_PATH`/`SL_REAL_BASE`, checklist path, base ref), and `sl-issue` still owns the board move and the report format. And never re-dispatch without that line: it just hits the same failure again.
 - The PR is **not cleanly mergeable** (conflicts, `mergeStateStatus` not clean).
 - **`gh pr merge` itself fails** after a clean pre-check — branch protection, or a push that landed in between. Stop the close-out block there: do **not** close the issue or move the card.
 - The run reported a **failed or missing verification**, or a red `./gradlew check`.
@@ -166,8 +147,6 @@ Show two tables: the **eligible queue** (position, `#`, title, parent) and the *
 
 Then resolve everything in **one** `AskUserQuestion` round: whether to drop any flagged umbrella parent, and whether to **force any dropped item back in** (the drop rules are the default, and the user can always override a specific one — e.g. an issue assigned to them that they genuinely want re-run). If nothing is eligible after filtering, say so and stop; there's nothing to work.
 
-**With `--keepGoing`:** skip the question round entirely. Drop flagged umbrella parents, leave dropped items dropped, print both tables plus one line naming the defaults you took and the one-line trade-off note, and start item 1.
-
 There is **no end-column question** — the Searchlight board contract is fixed: `In progress` on start, `In review` when the PR is up. Start item 1 — no further gate.
 
 ## 4. Per item: claim → dispatch → report → merge → next
@@ -184,7 +163,7 @@ If it was closed or picked up in the meantime, **don't work it** — report the 
 ### 4b. Dispatch a fresh `/sl-issue` subagent  ← new thread, clean context
 One subagent per item, **`subagent_type: sl-core-worker`** (opus @ **high** effort by definition — authoring is a core role, and the Agent tool has no `effort` param, so a bare `general-purpose` + `model: opus` dispatch would silently inherit the session default), **`run_in_background: false`** — you need the result before continuing, and the queue is deliberately serial. Nothing from the previous item leaks into this one.
 
-**Concurrency budget — cap the fan-out inside the item.** The queue being serial bounds *your* dispatches to one at a time, but it does **not** bound the child's: `sl-issue` calls `sl-ship`, which runs a multi-agent `code-review` panel and `sl-verify`, each of which can fan out again. Nested panels multiply, and a single item has been seen running dozens of threads at once — which mostly buys contention, not throughput. Two gradle builds in one worktree alone fake a ~60-class failure.
+**Concurrency budget — cap the fan-out inside the item.** The queue being serial bounds *your* dispatches to one at a time, but it does **not** bound the child's: `sl-issue` calls `sl-ship`, which runs a backgrounded `code-review --fix` pass and `sl-verify`, each of which can fan out again. Nested panels multiply, and a single item has been seen running dozens of threads at once — which mostly buys contention, not throughput. Two gradle builds in one worktree alone fake a ~60-class failure.
 
 So the prompt must impose a hard ceiling: **at most 4 subagents in flight at any moment for the whole item, counting every nested level.** Beyond that, run them in waves rather than widening. Put it in the prompt verbatim:
 
@@ -193,7 +172,7 @@ So the prompt must impose a hard ceiling: **at most 4 subagents in flight at any
 The subagent prompt must carry:
 1. **The invocation**: "Invoke the `sl-issue` skill (Skill tool, `skill: sl-issue`) with `<n>` *(plus `--skip-worktree` if the user passed it)* and follow it end to end."
 2. **The no-interaction rule**: "You cannot reach the user. If you hit a requirement that is ambiguous in a way that changes *what* to build, do **not** guess and do **not** proceed — stop and return `BLOCKED:` followed by the specific question and the concrete options you'd offer. Resolve pure implementation choices yourself."
-3. **Batch context** when it matters: "This is item `<i>` of `<N>`; item `<i-1>` (#`<prev>`) is <merged | open in PR #X and NOT merged, so your `origin/main` base does not contain it>." Call out explicitly when the previous item added a **Flyway migration** — the next item must not reuse that version number. Under `--keepGoing` `<N>` is the queue's **current** length, which grows as takeaways are filed; say "of `<N>` so far" rather than implying a fixed total.
+3. **Batch context** when it matters: "This is item `<i>` of `<N>`; item `<i-1>` (#`<prev>`) is <merged | open in PR #X and NOT merged, so your `origin/main` base does not contain it>." Call out explicitly when the previous item added a **Flyway migration** — the next item must not reuse that version number.
 4. **The report contract** — end your final message with: issue title + URL; PR URL; the requirements checklist with each row's ✅/❌ and evidence; verification verdict; whether an `sl-plan` plan of record was adopted (and what drifted if amended); confirmation the card moved to "In review"; the worktree root path and whether it was removed; and explicitly — **caveats, deferred/out-of-scope requirements, and follow-ups worth filing**, plus the **ops footprint** (`### Ops / rollout`): does this need a backend/UI/embed/infra **deploy**, does it add a **Flyway migration**, and which live integration configs must be **republished** afterwards.
 
 ### 4c. Report back to the user
@@ -201,12 +180,10 @@ Relay the run's outcome in the terminal — the subagent's report is **not** sho
 
 **If the run came back `BLOCKED:`** — put the question to the user with `AskUserQuestion` (using the options the subagent proposed), post the answer back onto the GitHub issue as a comment so the ticket stays the source of truth (`gh issue comment <n> --repo Zangow/IntegrationService --body "Clarified scope: …"`), then **resume that same subagent** with `SendMessage` to its agent ID so it continues with its context intact — do not spawn a fresh one and pay for the whole context again.
 
-**If the user wants changes** to the delivered work, send them to the same agent with `SendMessage` too; it still has the worktree, the branch, and the checklist.
-
-**With `--keepGoing`:** still relay the run's outcome — the user reads it afterwards and it is the only record of what happened — but **do not stop**. Then file the run's takeaways as cards (see the `--keepGoing` section), report which ones you filed and where each landed in the queue, and go straight to 4d. A `BLOCKED:` run is **not** put to the user and **not** guessed at: file it and move on per "When an item can't close out cleanly".
+**If the user wants changes** to the delivered work, send them to the same agent with `SendMessage` too; it still has the worktree, the branch, and the checklist. That includes *"fix this before merging"* on something they spotted in the diff — it is the same mechanism, and it goes back to the agent that owns the branch rather than becoming an edit in your context. If the change is code, the agent re-runs `./gradlew check` and reports back before you return to 4d; it does **not** re-run the whole ship pipeline.
 
 ### 4d. Offer merge + cleanup
-**Without `--keepGoing`:** once the user is satisfied, offer it — never merge unprompted. (**With `--keepGoing`, skip straight to the close-out block at the end of this step.**) Check mergeability first:
+Once the user is satisfied, offer it — **never merge unprompted.** Check mergeability first:
 ```bash
 gh pr view <pr> --repo Zangow/IntegrationService \
   --json number,title,mergeable,mergeStateStatus,statusCheckRollup,headRefName
@@ -237,43 +214,26 @@ Offer with one `AskUserQuestion` (`multiSelect: true`): *Merge the PR* / *Remove
 
 **If the user declines the merge**, say plainly what it costs: the next item branches off `origin/main` without this work. Carry that into the next subagent's prompt (point 3 above) so it knows its base is missing the parent's code.
 
-**With `--keepGoing`:** don't offer — close the item out. Check mergeability first exactly as above; if it isn't clean, take the "can't close out cleanly" path instead. Otherwise run these in order, and report the result of each:
-
-```bash
-export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"
-
-gh pr merge <pr> --repo Zangow/IntegrationService --merge   # if THIS fails, stop here — see "can't close out cleanly"
-gh issue close <n> --repo Zangow/IntegrationService
-"${SL_REAL_BASE:-$SL_BASE_PATH}/.claude/skills/_shared/sl-move-issue-column.sh" Zangow/IntegrationService <n> "Done"
-"${SL_REAL_BASE:-$SL_BASE_PATH}/.claude/skills/_shared/sl-worktree.sh" remove issue-<n>-<slug>
-```
-
-**Order matters**: merge before closing (a PR merged after its issue closes still works, but the board move reads the closed state), and merge before removing the worktree (the branch must be on the remote and merged). Never `--force` a worktree removal — if it has uncommitted changes the run left something behind, so leave it and say so. No `env-release` here: `remove` already releases the lock, and a bare `env-release` from the driver exits 1 because the lock owner is the *worktree* root, not yours.
-
-If the merge succeeds but a later step fails, **that is not a failed item** — board moves and worktree cleanup are conveniences, not gates. Note it and carry on. A GitHub GraphQL rate limit (5,000/hr, shared) will take out board moves first; when you hit one, stop retrying, record which cards need their column set by hand, and keep working — REST calls still have quota.
+A GitHub GraphQL rate limit (5,000/hr, shared) will take out board moves first; when you hit one, stop retrying, record which cards need their column set by hand, and keep working — REST calls still have quota. A failed board move or worktree removal after a successful merge is **not** a failed item; note it and carry on.
 
 ### 4e. Ask before the next item
 > **Ready for the next one?** — next up is `#<n>: <title>` (item `<i+1>` of `<N>`).
 
 Offer *Start it* / *Skip it and go to the one after* / *Stop here*. On confirmation, go back to **4a** for that item. Never roll straight into the next item unprompted.
 
-**With `--keepGoing`:** no gate. Print one line — `→ next: #<n> <title> (item <i+1> of <N>)`, where `<N>` is the **current** queue length including anything filed this item — and go straight to 4a. Stop only when the queue is exhausted or the user interrupts.
-
 ## 5. Final summary
 When the queue is exhausted (or the user stops), print one table over every item: `#`, title, outcome (shipped / blocked / skipped / stopped), PR URL, merged?, worktree removed?, board column. Below it, list **every caveat and follow-up** collected across the runs, plus the **combined ops footprint** for the batch — what needs deploying, which migrations landed, and which live configs must be republished. Those are the easiest things to lose in a long batch, and they're usually the reason the next ticket exists.
 
-**With `--keepGoing`, this summary is the whole interaction** — the user has not seen a single gate, so it carries the weight of all three skipped pauses. In addition to the above:
+Also, in their own list and up front:
 
-- Mark which rows were **filed by the batch** rather than asked for, and show the queue in the order it was actually worked, so an inserted critical is visible where it ran.
-- A **takeaways table**: `#`, title, critical?, queue position (next / end / filed-only), and the item it came from.
-- **Everything that did not close out cleanly**, in its own list, up front: blocked runs with their unanswered question, unmerged PRs with the reason, worktrees deliberately left on disk, and any card whose column needs setting by hand.
-- **The one thing the user must decide now** — if the batch surfaced a decision only they can make (a deploy, an irreversible publish, an unanswered `BLOCKED:`), lead with it. Autonomy defers those decisions; it does not make them.
+- **Everything that did not close out cleanly**: blocked runs with their unanswered question, unmerged PRs with the reason, worktrees deliberately left on disk, and any card whose column needs setting by hand.
+- **The one thing the user must decide now** — if the batch surfaced a decision only they can make (a deploy, an irreversible publish, an unanswered `BLOCKED:`), lead with it.
+- **Cards filed during the batch**, with the item each came from.
 
 ## Notes
 - **This skill never writes feature code.** Every implementation decision belongs to the `sl-issue` subagent; this skill expands, filters, claims, dispatches, relays, and gates.
 - **Serial by design.** `sl-issue` supports parallel authoring via worktrees, but a batch is a dependency chain far more often than not — especially Flyway version numbers, which collide silently when two branches off the same `main` each add one. One at a time, merged in between.
 - **Fresh context per item is the point.** Each item gets its own subagent so requirements, file paths, and half-formed assumptions from item N never bleed into item N+1.
-- **The three pauses are load-bearing**: the queue round up front (step 3), the results review (4c), and merge + next (4d/4e). Everything between them runs without stopping. **`--keepGoing` removes all three** — that is its entire purpose, and the final summary is what has to carry them.
-- **`--keepGoing` removes the pauses, never the judgement.** It still refuses to merge an unclean PR, still refuses to answer a `BLOCKED:` question, and still refuses to work a card it would have dropped. If a run's own report says the work isn't right, the flag does not make it right.
+- **The three pauses are load-bearing and non-optional**: the queue round up front (step 3), the results review (4c), and merge + next (4d/4e). Everything between them runs without stopping. They are where a wrong-but-plausible run gets caught, and they are the reason this skill needs no post-PR review of its own — the human at 4c/4d *is* that review. An autonomous mode was supported and **removed**: it deleted exactly those three checks, which meant code reached `main` on the strength of a run's own verification and nothing else. Don't reintroduce it as a flag.
 - **`BLOCKED:` is resumed, not restarted** — `SendMessage` back to the same agent keeps the worktree, branch, and checklist alive.
 - **Board and assignee updates are conveniences, not gates.** If a board move or assignee add fails (usually missing gh scopes — `gh auth refresh -s read:project,project`), surface it and keep going.
