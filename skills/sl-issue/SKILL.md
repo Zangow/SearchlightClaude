@@ -139,7 +139,7 @@ Imperative subject scoped to the step, a one-line body, and a `Refs #<n>` traile
 
 ### 4. Ship it — hand off to `sl-ship` in a FRESH agent  ← never run the pipeline in this context
 
-**Authoring ends here.** Your context now holds the issue + comments, every file you read while planning, the whole implementation diff, and every commit message. Invoking `sl-ship` inline stacks `simplify`, the verification loop, the repair rounds and the PR write-up *on top of that* — and because the full context is re-read on every tool call, the pipeline costs several times more here than it does in a fresh thread. Measured runs peaked at 400–560K context and spent ~90% of their tokens re-reading their own history; the driver agent alone was two-thirds of the cost of an entire issue.
+**Authoring ends here.** Your context now holds the issue + comments, every file you read while planning, the whole implementation diff, and every commit message. Invoking `sl-ship` inline stacks `/code-review`, the verification loop, the repair rounds and the PR write-up *on top of that* — and because the full context is re-read on every tool call, the pipeline costs several times more here than it does in a fresh thread. Measured runs peaked at 400–560K context and spent ~90% of their tokens re-reading their own history; the driver agent alone was two-thirds of the cost of an entire issue.
 
 So **dispatch `sl-ship` as a separate agent** — Agent tool, **`subagent_type: sl-core-worker`** (opus @ high by definition; `sl-ship` repairs code, which is authoring), `run_in_background: false` (you need its verdict before step 6). Nothing is lost by starting it cold: the work is **committed and pushed** (step 3), and the checklist lives **outside the repo**, so every input it needs is on disk rather than in your head.
 
@@ -155,9 +155,9 @@ So **dispatch `sl-ship` as a separate agent** — Agent tool, **`subagent_type: 
 4. **The issue** — `Zangow/IntegrationService#<n>` + URL, and the **absolute path to the requirements checklist** (`${SL_REAL_BASE}/.sl-issue/REQUIREMENTS-<n>.md`).
 5. **What you already know** — anything a cold reader can't recover from the diff: requirements you moved out of scope and why, an ambiguity you resolved with the user, an `sl-plan` plan you amended (including its `### Ops / rollout` section, which must reach the PR body), the test levels you landed per row, and whether each new AT was actually **run** against a live target. Keep this to a short list of facts, **not** your authoring reasoning — the point of a fresh context is that it reads the code without your rationalizations.
 6. **Its authority** — "You own the repair loop: if verification FAILs, fix the code, commit, push, and re-verify **within `sl-verify`'s 2-round cap**. If it is still not green at the cap, stop and return `SHIP-FAILED:` with the verifier findings verbatim — do not keep looping."
-7. **The return contract** — "End your final message with: the PR URL; the `VERIFY SUMMARY` block; the requirements table with each row's ✅/❌ and evidence; the correctness-review outcome; and every caveat / deferred requirement / follow-up."
+7. **The return contract** — "End your final message with: the PR URL; the `VERIFY SUMMARY` block; the requirements table with each row's ✅/❌ and evidence; the correctness-review outcome; and any caveat or deferred requirement. Disposition every review finding per `_shared/finding-disposition.md` — Critical/High fixed in-run, Medium/Low dropped. Do **not** return a follow-up list."
 
-sl-ship then runs its normal pipeline — `simplify` → `sl-verify` (looping until green, including the requirements-traceability pass) → PR → `code-review` — and:
+sl-ship then runs its normal pipeline — `/code-review --fix` → `sl-verify` (looping until green, including the requirements-traceability pass) → PR → `code-review` (plugin, on the PR) — and:
 - **`sl-verify`** maps each checklist row → real evidence (code/test/endpoint response/screenshot) and marks it ✅/❌. Any unmet requirement is a FAIL the ship agent repairs, subject to the same 2-round cap.
 - The PR embeds the satisfied-requirements table and adds the **`Refs`** link (step 5).
 

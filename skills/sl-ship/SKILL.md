@@ -1,6 +1,6 @@
 ---
 name: sl-ship
-description: End-to-end "close the loop" orchestrator for a Searchlight IntegrationService change — runs a quality pass (simplify + code-review), independent verification (sl-verify, looping until green), then commits, pushes, and opens a review-ready PR with a Refs #n link when issue-driven. Use when a change is code-complete and you want it taken all the way to a PR, or when asked to "ship it / close the loop / finish and put up for review".
+description: End-to-end "close the loop" orchestrator for a Searchlight IntegrationService change — runs a self-review pass (/code-review --fix), independent verification (sl-verify, looping until green), then commits, pushes, and opens a review-ready PR with a Refs #n link when issue-driven. Use when a change is code-complete and you want it taken all the way to a PR, or when asked to "ship it / close the loop / finish and put up for review".
 effort: high
 ---
 
@@ -37,10 +37,22 @@ Combine that with whether `code-review` appears in your available-skills listing
 
 **Do not block on this.** The review is mandatory-above-threshold but explicitly skippable *with a stated reason*, and a missing plugin is exactly such a reason — stalling a green pipeline over a config gap is worse than shipping with the gap flagged. Report the state, offer the fix, and carry on. Writing the setting mid-run does **not** make the plugin available to the current session (it loads at startup), so offer it as a fix for the *next* run.
 
-### 1. Quality pass — `simplify`
-Invoke the built-in **`/simplify`** on the diff (reuse, simplification, efficiency, altitude). Apply its fixes. This is quality only — bug-hunting happens in verification and in the correctness review at step 3.5.
+### 1. Self-review pass — `/code-review --fix`  (one pass, replaces `simplify`)
+Invoke the **built-in `code-review` skill** on the working tree, at `high` effort, with `--fix`:
 
-> **Correctness review moved to step 3.5.** The installed reviewer is the `code-review` plugin (`claude-plugins-official`), which reviews a **pull request** by number — so it cannot run here, before the PR exists. The bare `/code-review` skill is `disable-model-invocation` and cannot be launched programmatically at all; don't try, and don't hand-roll a replacement panel. See step 3.5.
+```
+Skill(skill: "code-review", args: "high --fix")
+```
+
+One pass covering correctness bugs **and** reuse / simplification / efficiency cleanups, with `--fix` **applying them to the working tree** instead of leaving them in a report for someone to shepherd. `simplify` is gone — don't invoke it, and don't hand-roll a replacement panel.
+
+> ⚠️ **It forks to the background.** The Skill call returns immediately with an agent name; the findings arrive later as a task notification. **Wait for that notification before step 2** — proceeding as if it ran inline means `./gradlew check` and `sl-verify` test a tree that's still being rewritten underneath them.
+
+Two things this pass does *not* do, now explicitly owned elsewhere:
+- **"Does it meet the requirement?"** → `sl-verify`'s requirements-traceability pass in step 2 (issue-driven runs). Standalone runs: check it yourself against the prompt before proceeding.
+- **"Is there acceptance coverage?"** → the acceptance-coverage check in step 2.
+
+**Disposition of what it finds: `_shared/finding-disposition.md`.** Critical and High get fixed **now**, in this run, before the PR. Medium and Low get **dropped** — not filed, not carried into a follow-ups list. Re-run `./gradlew check` after any fix.
 
 ### 2. Independent verification — `sl-verify`  (loop until green, capped)
 Invoke **`sl-verify`**. It runs the mechanical checks (build, tests, lint) inline, then dispatches **one separate, unbiased agent** to verify real runtime behavior — plus requirements traceability in the same pass when the work came from an issue (pass the checklist path through). It loops — fix, re-verify — until everything is PASS. Collect its summary + evidence + caveats.
@@ -67,7 +79,7 @@ PR body structure (write it to a scratchpad file, then `--body-file`):
 - **Changes** — bullet list by area.
 - **Requirements** — when issue-driven, the satisfied-requirements table from the checklist (each row ✅ with its evidence).
 - **How verified** — the `VERIFY SUMMARY` block from `sl-verify`, with screenshots/output embedded or linked. Name the **test levels** the change landed (AT + unit/integration, or the stated reason an AT doesn't fit) — a reviewer shouldn't have to diff the test tree to find out whether this is covered post-deploy.
-- **Caveats / follow-ups** — anything consciously deferred, including open recommendations from the quality pass.
+- **Caveats** — a limitation of the change itself a reviewer or operator must know about, a deliberate scope boundary, an irreversible step already taken. **Not** a follow-ups list: per `_shared/finding-disposition.md` review findings are either fixed before the PR (Critical/High) or dropped (Medium/Low), so neither belongs here. If a line reads like "we should also…", delete it.
 - **`Refs #<n>`** when the work came from an issue — a plain, non-closing reference so the PR and issue cross-link. **Never `Closes`/`Fixes`/`Resolves`** — issues are closed manually on merge.
 - End with the generated-with footer the harness instructions specify.
 
@@ -83,17 +95,18 @@ Skill(skill: "code-review:code-review", args: "<PR number>")
 It fans out its own panel (Haiku eligibility + summary, 5 parallel Sonnet reviewers across CLAUDE.md adherence / obvious bugs / git-blame history / prior-PR comments / code-comment guidance, then per-finding Haiku confidence scoring), filters to findings scoring ≥80, and posts them as a comment on the PR. A clean run posts nothing — that is a pass, not a failure.
 
 - **Mandatory** when the change is >150 changed lines, or touches auth/permissions, credentials/secrets handling, external integration contracts, persistence/migrations, or a public API contract; below that threshold it may be skipped **with a stated reason in the ship report**.
-- **Address the findings before handing back.** A confirmed correctness finding loops back to a fix + a `sl-verify` re-run (step 2), then push — don't leave a ≥80-confidence bug sitting in a PR comment as though the review were merely advisory.
+- **Address the findings before handing back.** A confirmed **Critical/High** finding loops back to a fix + a `sl-verify` re-run (step 2), then push — don't leave a real bug sitting in a PR comment as though the review were merely advisory. Confirmed Medium/Low findings are **dropped**: leave the comment on the PR as the record and move on (`_shared/finding-disposition.md`). This step is a second, independent look at the pushed diff; step 1 already swept the working tree.
 - It deliberately ignores anything a compiler, linter, or test suite would catch, assuming CI covers that. This repo has no CI (see the no-GitHub-workflows rule), so `./gradlew check` from step 2 **is** that gate — make sure it's green rather than expecting the reviewer to catch a build break.
 - **Not resolvable?** `code-review:code-review` requires the plugin enabled in `~/.claude/settings.json` (`enabledPlugins`) *and* a restart since. If the Skill tool reports an unknown skill, say so in the ship report and ask the user to run `/code-review <PR#>` themselves — never substitute a self-authored review panel for it.
 
 ### 4. Hand back to `sl-issue` (when issue-driven)
-End your final message with the return contract your brief asked for: the **PR URL**, the `VERIFY SUMMARY` block, the requirements table with each row's ✅/❌ and evidence, the correctness-review outcome, and every caveat / deferred requirement / follow-up. `sl-issue` moves the card to **"In review"** off that report — it owns the board move, and it only makes it if a PR URL came back. If verification never went green, return `SHIP-FAILED:` with the findings instead of a PR URL, so the card correctly stays in "In progress". Run standalone, there's no board interaction here.
+End your final message with the return contract your brief asked for: the **PR URL**, the `VERIFY SUMMARY` block, the requirements table with each row's ✅/❌ and evidence, the correctness-review outcome, and any caveat or deferred requirement. Disposition every review finding per `_shared/finding-disposition.md` — Critical/High fixed in-run, Medium/Low dropped — and do **not** return a follow-up list. `sl-issue` moves the card to **"In review"** off that report — it owns the board move, and it only makes it if a PR URL came back. If verification never went green, return `SHIP-FAILED:` with the findings instead of a PR URL, so the card correctly stays in "In progress". Run standalone, there's no board interaction here.
 
 ## Output
-Report: what simplify/code-review changed, the verification verdict, and the PR URL — so the user can go straight into review.
+Report: what the self-review pass changed, the verification verdict, and the PR URL — so the user can go straight into review.
 
 ## Notes
 - **Independence where judgment lives**: behavioral and requirements verification is always done by an agent that didn't author the code (enforced by `sl-verify`) — don't shortcut that by judging behavior inline. Mechanical checks (build/tests/lint) run inline by design; an exit code carries no authoring bias.
 - Commit + push each change without asking; the PR is the human review gate.
 - Each sub-step is also runnable on its own (`sl-verify`, the PR step) when you don't need the whole pipeline.
+- **One self-review pass, not two.** Step 1 (`/code-review --fix` on the tree) and step 3.5 (the plugin, on the pushed PR) are the only review passes. Findings are dispositioned by `_shared/finding-disposition.md`: **Critical/High fixed in-run, Medium/Low dropped.** A card ends when its acceptance criteria are met and nothing Critical/High is outstanding — not when every observation has a ticket.

@@ -30,13 +30,23 @@ Without the flag this skill pauses three times per item and the user decides. Wi
 **The four rules that replace the pauses:**
 
 1. **Never ask — take the default.** Step 3's question round is skipped: dropped items stay dropped, and an umbrella parent is dropped **only if it arrived as a sub-issue of something else**. A parent the user *named on the command line* is worked — silently discarding work they explicitly typed is not a default you get to take. Say what you defaulted to, and move on.
-2. **File takeaways as cards** (below) instead of surfacing them for a human to triage.
+2. **File takeaways as cards** (below) instead of surfacing them for a human to triage — but only the narrow set that clears the bar there. Filing nothing is the common case.
 3. **Close out every item automatically**: merge the PR, close the issue, move the card to `Done`, remove the worktree — in that order, per item, before starting the next.
 4. **Never guess on a `BLOCKED:` run.** Autonomy removes the *pauses*, not the *judgement*. A blocked run is not resolved by picking an option — see "When an item can't close out cleanly".
 
-### Filing takeaways
+### Filing takeaways — the bar is high, and it is not the default
 
-After each run, read the report's caveats / deferred requirements / follow-ups. **File it if it names a specific defect, gap, or deferred requirement with evidence.** Don't file "we should look into X" — that is a line for the final summary, not a card. One card per takeaway, in the same repo, linked as a **native sub-issue of the same parent** the current item hangs off (the batch root when the item has no parent).
+**Default: file nothing.** An `sl-issue` run is supposed to *finish* its card, not spawn the next three. Per `_shared/finding-disposition.md`, the child run has already fixed everything Critical/High in its own diff and dropped everything Medium/Low — so by the time a report reaches you, **most runs should have nothing to file.** If a batch is producing a card per item, that is the bug, not the feature. (#248 → #268 → fifteen open follow-ups is what this rule exists to prevent.)
+
+A takeaway becomes a card **only** when it is **Critical or High severity** AND one of these is true:
+
+1. **It's not that card's code** — a real defect in a subsystem the diff didn't touch, where fixing it in-run would have meant a second unreviewable change riding along.
+2. **It needs a human decision or an ops action** — a product/scope question, an external contract change, a Flyway migration, a deploy, a live-config republish, a published canonical-schema change.
+3. **It's blocked** — a missing live token or credential, an unavailable environment, a third party.
+
+Everything else is **dropped**: Medium and Low regardless of exception, and anything vague ("we should look into X", "consider extracting Y", "add more tests"). Dropped means *gone* — not a card, not a line in the queue, not carried into the next prompt. At most one line in the final summary.
+
+State the severity and which exception applies **in the card body**. If you can't name one, you don't file. Two consecutive items filing nothing is the healthy case, not a sign you're missing things.
 
 **Before filing, check it against the cards this batch has already filed.** If it is the same substance as an existing one, comment on that card instead — two runs noticing the same missing index must not produce two cards.
 
@@ -49,6 +59,8 @@ URL=$(gh issue create --repo "$REPO" \
   --title "<takeaway title>" \
   --body "$(cat <<'EOF'
 Filed automatically by `/sl-issues --keepGoing` from the run on #<item>.
+
+**Severity:** Critical|High · **Why it wasn't fixed in-run:** <exception 1, 2, or 3>
 
 **Surface:** … · **Change type:** … · **Flyway migration:** … · **Deploy needed:** … · **Live configs to republish:** …
 
@@ -77,11 +89,13 @@ Write a **real card**, not a stub — the run has the evidence in hand and this 
 
 ### Where a takeaway goes in the queue
 
+Only exception-1 cards are ever enqueued — a **Critical** defect in code this batch will build on top of. Exception 2 (needs a decision or an ops action) and exception 3 (blocked) are **filed, never enqueued**: dispatching a run at an unanswerable question just burns an Opus run and invites the guess rule 4 forbids. They go in the final summary's decision list.
+
 | Kind | Test | Queue position |
 |---|---|---|
-| **Critical** | It causes **data loss or corruption**; it is a **security exposure**; it **breaks `main` or a deploy**; it **blocks or invalidates a later item in this queue**; or it makes a **just-shipped card's acceptance criteria untrue**. | **Inserted as the next item** — worked before anything else, because everything after it is built on the problem. |
-| Everything else | Real, worth doing, but the queue is still correct without it. | **Appended to the end** of the queue. |
-| **Not workable by an agent** — its body is a question for the user, a decision only they can make, or an ops action (a deploy, an irreversible publish) | Regardless of how critical it is. | **Filed, never enqueued.** It goes in the final summary's decision list. Dispatching a run at an unanswerable question just burns an Opus run and invites the guess rule 4 forbids. |
+| **Critical, exception 1** | It causes **data loss or corruption**; it is a **security exposure**; it **breaks `main` or a deploy**; it **blocks or invalidates a later item in this queue**; or it makes a **just-shipped card's acceptance criteria untrue**. | **Inserted as the next item** — worked before anything else, because everything after it is built on the problem. |
+| **High, exception 1** | Real defect, but the queue is still correct without it. | **Filed, not enqueued.** It's a card for later, not a detour now. |
+| **Exception 2 or 3** | Needs a human decision or an ops action, or is blocked. | **Filed, never enqueued.** Goes in the final summary's decision list. |
 
 When in doubt it is **not** critical — a wrongly-promoted card reorders the batch and starves the work the user actually asked for. Inserted criticals are worked exactly like any other item: step 4a re-check, claim, dispatch.
 
@@ -90,7 +104,8 @@ When in doubt it is **not** critical — a wrongly-promoted card reorders the ba
 The queue is mutable, so it needs real limits. Track, in-session, **the list of cards this batch filed** — that list is the marker, not a label (don't invent one; `takeaway` does not exist in this repo and `gh` hard-fails on an unknown label, which would abort the create).
 
 - **Depth:** a card this batch filed may itself file takeaways, but those are **filed only, never enqueued** — the queue grows at most one level deep from what the user asked for.
-- **Breadth:** enqueue at most **2 takeaways per item**, and stop enqueuing entirely once the queue has grown past **2× its original length**. File the rest and list them.
+- **Breadth:** enqueue at most **1 takeaway per item**, and stop enqueuing entirely once the queue has grown past **1.5×** its original length. File the rest and list them.
+- **Filing rate is itself a signal:** if **3 consecutive items each file a card**, stop and report before starting the next. Either the runs are ignoring the disposition policy, or something systemic is wrong with `main` — both are worse than a paused batch.
 - **Circuit breaker:** after **3 consecutive items that fail to close out cleanly**, stop the batch and report. Something systemic is wrong — usually a bad merge on `main` that every later base now carries, in which case continuing just burns the queue filing one critical card per item.
 
 Report everything filed-but-not-enqueued, and any cap you hit, in the final summary.
