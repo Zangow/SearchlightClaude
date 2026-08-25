@@ -23,7 +23,7 @@ gets exactly:
 |---|------|----------------|
 | 1 | **`code-review --fix`** on the working tree (`sl-ship` step 1; `medium` by default) | yes — this is the fixing review |
 | 2 | **`sl-verify`** behavioural + requirements | yes — **one** repair round, Critical/High FAIL only |
-| 3 | **`code-review:code-review` (plugin) on a draft PR** | no — **only** as `sl-ship` step 1's fallback |
+| 3 | **`code-review` on the open PR** (built-in, full PR URL) | no — **only** as `sl-ship` step 1's rung-2 fallback; the `code-review:code-review` plugin is uninstalled and must not be invoked |
 | 4 | **One cold-agent handoff** (`sl-verify` step 3) | yes — **one per run, ever**, and only when row 2 came back genuinely close |
 
 Row 3 is not a routine step. It exists in one place: when the built-in `code-review` fails to launch,
