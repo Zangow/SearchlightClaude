@@ -64,7 +64,7 @@ Capture `number`, `url`, `title`, and `labels`. Then check five things **before*
 5. **The epic it hangs off**, if any (`#1` platform, `#129` raw-capture, `#134` Yelp docs-compliance, `#173` AT pack …). Sibling tickets in the same epic usually set the pattern the children should follow — and sometimes reveal that part of this card is already filed elsewhere.
 
 ### 2. Ground the breakdown in the actual codebase  ← before drawing a single line
-Fan out fresh **`Explore`** agents (Agent tool, `subagent_type: Explore`, several in **one** message so they run concurrently) — one per plausible surface. Skip surfaces the card obviously doesn't touch:
+Find the real surfaces this card touches — inline, or with fresh **`Explore`** agents (Agent tool, `subagent_type: Explore`) under the cap below. The candidate surfaces:
 
 - **Backend** — `$SL_BASE_PATH/IntegrationService/src/main/java/io/searchlightdigital/integration/` (`api` · `domain` · `mapping` · `hydration` · `polling` · `delivery` · `config`)
 - **Schema** — `src/main/resources/db/migration/V*.sql` (Flyway, additive-only, `ddl-auto: validate`) — **always check this one**, if only to learn the next free `V<n>`
@@ -75,7 +75,9 @@ Fan out fresh **`Explore`** agents (Agent tool, `subagent_type: Explore`, severa
 - **Tests** — `acceptance-tests/`, `e2e/specs/*.spec.ts`, `src/integrationTest/`, `src/test/`
 - **Skills** — `$SL_BASE_PATH/.claude/skills/` (a **separate repo**, `Zangow/SearchlightClaude`)
 
-Ask each for what `sl-plan` asks (where this behavior lives today, the **closest existing pattern to copy**, what has to change, what's already there the card may not know about, where the matching tests live — all as `file:line`) **plus the three things this skill specifically needs**:
+**Cap the fan-out at 3.** Decide which surfaces are plausible first, and skip the ones the card obviously doesn't touch. **One or two plausible surfaces → ground them inline** on this thread (Grep / Glob / `git ls-files` / Read); dispatch nothing. **Three or more → fresh `Explore` agents in one message, never more than 3**, one per plausible group: **Backend + Schema**, **Admin UI + Embed**, **Infra + Ops + Skills** — Tests ride with the surface they test. Never dispatch a fourth; widen an agent's brief instead.
+
+Ask each pass for what `sl-plan` asks (where this behavior lives today, the **closest existing pattern to copy**, what has to change, what's already there the card may not know about, where the matching tests live — all as `file:line`) **plus the three things this skill specifically needs**:
 
 - **The seams.** Where does this work naturally cut into pieces that can land separately? What is the smallest first change that is useful on its own and doesn't break anything?
 - **The real surface list.** Which surfaces does this genuinely touch? Don't infer it from the card's prose, which routinely says "and update the UI" for work that turns out to be one admin form field — or omits the Terraform IAM widening that the S3 write actually requires.
@@ -177,18 +179,12 @@ being extended, and say how a new AT actually gets run.>
 ```
 
 ### 6. Breakdown-review gate  ← before anything is filed
-A breakdown nobody checked is worse than none, because the queue trusts it. Run it past fresh, **context-isolated** reviewers — they get the parent issue, the step-2 grounding, and the **proposed breakdown**, never your reasoning for it. Scale the panel to size (a 3-card split doesn't need three reviewers):
+A breakdown nobody checked is worse than none, because the queue trusts it. Run it through `_shared/review-gate.md` — the roster (1× `sl-depth-reviewer` + 1–2× `sl-panel-reviewer`, escalated on its triggers), adjudication, the one delta round and the hand-off to you all live there. This step owns only the lenses and where the verdict lands:
 
-(Panel roster + effort per `_shared/model-orchestration.md`.)
-- **1× `sl-depth-reviewer`** (`subagent_type: sl-depth-reviewer` — opus @ `effort: high` by definition; dispatch it by type, not as `general-purpose` + `model: opus`, which would inherit the session effort) — *coverage*: does the union of these cards deliver the whole parent? What fell **between** two cards? Is any card too big for one context or one reviewable PR?
-- **Adjudicate the union** — reconcile the panel yourself if this thread is Opus, otherwise dispatch **`subagent_type: sl-adjudicator`** (opus @ `effort: high`). A cheap-lens flag is a candidate, not a verdict; re-cutting a breakdown around a false positive costs more than the panel saved.
-- **1–2× `sl-panel-reviewer`** (`subagent_type: sl-panel-reviewer` — sonnet @ `effort: medium` by definition; the cheap tier *and* the cheap effort are the point) — decorrelated breadth: ordering and dependency errors, a card that secretly spans two surfaces, duplicated work across cards, missed empty/error/credential-expiry/rate-limit work, a card that can't actually start where the line says it can.
+- **Lenses** — the `sl-depth-reviewer` takes *coverage*: does the union of these cards deliver the whole parent, what fell **between** two cards, is any card too big for one context or one reviewable PR? Each `sl-panel-reviewer` takes one of: ordering, migrations & deploy seams (a card that can't start where the line says it can, a hidden dependency); surface & duplication (a card that secretly spans two surfaces, work done twice, missed empty/error/credential-expiry/rate-limit work); or integration-contract & live-data blast radius.
+- **Verdict** — confirmed BLOCKERs are folded into the cut, then re-run the step-4 self-check if the order moved; the CONCERN ledger and the reviewing models go in the step-7 presentation and the Output report.
 
-Give each a distinct lens where you can — coverage & traceability · ordering, migrations and deploy seams · integration-contract and live-data blast radius.
-
-**Adjudicate on Opus** — Sonnet nominates, Opus decides. Fold real blockers into the cut and re-run the step-4 self-check if the order moved.
-
-**Escalate the panel** when the breakdown touches a Flyway migration, already-delivered S3 data (remap/purge/redaction/versioning), a published contract or standard schema, credentials/PII, or IAM. Those are the cuts that are expensive to unwind.
+> **Review gate:** roster → dispatch → adjudicate → one delta round → ask, per `_shared/review-gate.md`.
 
 Note in the parent comment that the per-card **plan review still has to happen** — `/sl-plan` or `/sl-issue`'s own gate on each child. This breakdown reviewed the *cut*, not the method.
 

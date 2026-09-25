@@ -13,6 +13,7 @@ instead of restating it, so the rule changes in one place.
 | [`testing-policy.md`](./testing-policy.md) | AT by default, unit/integration always; only a full `./gradlew check` with a quoted test count backs green; Docker down = BLOCKED | `sl-issue`, `sl-plan`, `sl-subtask`, `sl-verify`, `sl-ship`, `sl-verify-runner` |
 | [`finding-disposition.md`](./finding-disposition.md) | fix Critical/High now, drop Medium/Low (below) | `sl-ship`, `sl-issue`, `sl-issues`, `sl-verify` |
 | [`model-orchestration.md`](./model-orchestration.md) | which model runs which role (below) | every skill that dispatches subagents |
+| [`review-gate.md`](./review-gate.md) | plan-time review panel: roster + escalation, adjudicate, one delta round, then ask | `sl-plan` step 5, `sl-subtask` step 6 |
 
 ## `model-orchestration.md` — which Claude model runs which role
 
