@@ -70,7 +70,7 @@ dominates.
 ## Verification panel
 
 `sl-verify` dispatches verifiers under these rules; its escalation trigger list lives in
-`sl-verify` ("Model & panel policy"), kept identical to `sl-ship` step 1's review-effort trigger.
+`sl-verify` ("Model & panel policy") — the one copy, which `sl-ship` step 1 also reads for review effort.
 
 - **Every verifier is an `sl-verify-runner`** (sonnet/medium by definition). Only the **model**
   escalates; effort stays the runner's medium on every dispatch, because the running service —

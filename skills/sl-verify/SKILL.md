@@ -26,7 +26,7 @@ Independence protects against **rationalization** — an author explaining away 
 
 ### Model & panel policy
 Verifier dispatch — `sl-verify-runner` by type, model-only escalation, the opt-in second panelist, and inline adjudication with `sl-adjudicator` as the non-Opus fallback — follows `_shared/model-orchestration.md` "Verification panel".
-- **Escalation trigger:** the change touches a **published API/schema contract, an external integration contract, persistence/migrations, auth/permissions, or credentials/secrets** — or exceeds **~500 changed lines** (`git diff --shortstat origin/main...HEAD`). This is the same trigger list `sl-ship` step 1 uses to raise review effort; keep the two in sync.
+- **Escalation trigger:** the change touches a **published API/schema contract, an external integration contract, persistence/migrations, auth/permissions, or credentials/secrets** — or exceeds **~500 changed lines** (`git diff --shortstat origin/main...HEAD`). This is the only copy of the list: `sl-ship` step 1 raises review effort on it and `_shared/finding-disposition.md` points here, so a diff that escalates the verifier escalates the review.
 
 ## Workflow
 
@@ -35,7 +35,7 @@ Verifier dispatch — `sl-verify-runner` by type, model-only escalation, the opt
 git -C "$SL_BASE_PATH/IntegrationService" status --short
 git -C "$SL_BASE_PATH/IntegrationService" diff --stat main...HEAD
 ```
-Identify the surfaces the diff touches (service code, tests, config/infra, docs) and — since the repo's stack may evolve — detect the toolchain from the repo itself (build files, package manifests, CI workflows under `.github/workflows/`) rather than assuming one. Whatever CI runs is the minimum bar locally.
+Identify the surfaces the diff touches (service code, tests, config/infra, docs, `ui/`, `ui-embed/`) and read the toolchain from the repo itself (build files, package manifests) rather than assuming one. There is no CI to mirror — step 2a is the whole mechanical bar.
 
 ### 2a. Mechanical checks — inline, main thread
 > **Testing policy:** the evidence rules are `_shared/testing-policy.md` §3 — only a full `./gradlew check` backs green, never `-q`, and a quoted test count, never a bare `BUILD SUCCESSFUL`.
@@ -64,8 +64,6 @@ Collect verdicts. On any **FAIL**, fix the code in the main thread, then re-chec
    **Three things are never Medium**, no matter how small they look: an **unmet requirements row** (the change doesn't do what the issue asked), a **failing build or test**, and a **BLOCKED** check. None of those may ever be recorded as dropped. An unmet requirement or a failing build/test opens the repair round; a **BLOCKED** check does not — it is an environment fix and a re-dispatch, which costs no round at all (see "At the cap" below). What it can never do is pass.
 
    A dropped FAIL does **not** stay a FAIL in the summary — there is no lawful "FAIL but ignored" state, and leaving one there deadlocks `sl-ship` and `sl-issues`, which both refuse to merge on a failed verification. Record it as **`PASS (dropped: <severity> — see Caveats)`** on its row and write the finding verbatim into `Caveats`. That is a real pass — the change is correct — carrying a disclosed, deliberately unrepaired observation. Downgrading a Critical/High to reach that spelling is the one thing this rule forbids; if you're unsure whether it qualifies, it's Medium *only* when it fails none of the three tests above.
-
-**Why the cap is hard.** Every round appends a verifier report *and* a fix diff to your context, and each subsequent tool call re-reads all of it — so each round costs strictly more than the one before it while being strictly less likely to work. A round that didn't converge almost always means the **diagnosis** is wrong, not the fix, and another pass by the same context repeats the same wrong model of the bug. An unbounded repair loop is the single most expensive failure mode in this pipeline. If round 1 doesn't land it, a **cold** agent is both cheaper and likelier to succeed than round 2 here — that's the handoff below, not an extra round.
 
 **At the cap:**
 - **Still FAIL** → report it with the verifier's findings **verbatim**, plus what the round changed and why it didn't work. To `sl-ship`/`sl-issue` this is a failed ship, not a caveat — never round a persistent FAIL up to PASS to end the loop.

@@ -1,6 +1,6 @@
 ---
 name: sl-plan
-description: Planning-only front door that turns a Searchlight IntegrationService GitHub issue into a proper, reviewed implementation plan and persists it on the card — pulls the issue via gh, grounds itself in the real IntegrationService code (file:line, not guesses), works through the clarifying questions WITH you interactively, authors a step-by-step plan, runs it past a fresh plan-review panel, then writes it back to the issue as a comment (default) or an appended description section. Records the Searchlight-specific footprint every ticket needs — config-only vs platform capability, Flyway migration, backend/UI/embed/infra deploy, and which live integration configs must be republished afterwards. The persisted plan becomes the plan of record a later sl-issue follows instead of re-planning from scratch. Use when asked to "plan this issue / write a plan for #n / think through this ticket before we build it / put a plan on the card". Writes no code, cuts no branch, opens no PR.
+description: "Planning-only front door that turns a Searchlight IntegrationService GitHub issue into a proper, reviewed implementation plan and persists it on the card — pulls the issue via gh, grounds itself in the real IntegrationService code (file:line, not guesses), works through the clarifying questions WITH you interactively, authors a step-by-step plan, runs it past a fresh plan-review panel, then writes it back to the issue as a comment (default) or an appended description section. Records the Searchlight-specific footprint every ticket needs — config-only vs platform capability, Flyway migration, backend/UI/embed/infra deploy, and which live integration configs must be republished afterwards. The persisted plan becomes the plan of record a later sl-issue follows instead of re-planning from scratch. Use when asked to \"plan this issue / write a plan for #n / think through this ticket before we build it / put a plan on the card\". Writes no code, cuts no branch, opens no PR."
 effort: high
 ---
 
@@ -21,7 +21,7 @@ That persistence is the point. Today an `/sl-issue` run re-derives the plan in i
 ```
 /sl-plan <issue-number|url> [--dry-run] [--replan]
 ```
-- An issue URL (`https://github.com/Zangow/IntegrationService/issues/<n>`) **or just an issue number** — `159` or `#159`. A bare number **defaults to `Zangow/IntegrationService`**, where every Searchlight card lives. If no issue was given, ask for it.
+- An issue URL (`https://github.com/Zangow/IntegrationService/issues/<n>`) **or just an issue number** — `159` or `#159`. A bare number **defaults to `Zangow/IntegrationService`**, where every Searchlight card lives — including cards whose work is in the skills repo (`Zangow/SearchlightClaude`, `$SL_BASE_PATH/.claude/`). If no issue was given, ask for it.
 - **`--dry-run`** — plan and report to the terminal only. **No** comment, **no** body edit. Use to think a ticket through without committing anything to it.
 - **`--replan`** — the card already carries an `sl-plan` comment and you want a fresh one anyway (scope changed, the old plan is wrong). Without it, an existing plan is **revised**, not duplicated (step 1).
 
@@ -197,15 +197,8 @@ If a write fails (usually gh auth/permissions), surface it and hand the user the
 ## Output
 Report: the issue title + URL + current board column, the **plan** (or a pointer to it), the **clarifications you resolved with the user**, the **change-type verdict** (config-only vs platform capability) and the **deploy/republish footprint**, the **plan-review outcome** — blockers folded in, concerns accepted, and which models reviewed — where the plan landed (comment / description / both / terminal-only, or `--dry-run`), and the local paths to `PLAN-<n>.md` and `REQUIREMENTS-<n>.md`. Close with the obvious next step: `/sl-issue <n>` to build it.
 
-## Guardrails & notes
-- **Planning only.** No feature code, no branch, no worktree, no env boot, no PR. The only writes are the user-gated issue comment / body edit in step 6.
-- **Clarifying is the feature, not the exception.** Unlike `sl-issue`, stopping to ask is what this skill is *for*. Ask in batches, with concrete options, and only about things that change what gets built or materially change the plan.
-- **Ground before you plan.** Every step should name a real `file:line` from the step-2 grounding. A plan of generalities is the failure mode this skill exists to prevent.
-- **The comment is the durable plan; the local file is a working copy.** Keep the checklist and clarifications inline in the comment — a later `/sl-issue` may run on a different machine, or in a worktree where `.sl-plan/` isn't visible.
-- **Never move the card, never assign it.** Planning doesn't change work state; `sl-issue` owns the board moves.
-- **Preserve ticket history.** Append to bodies, revise plans by posting a linked revision, and never overwrite a human's text.
+## Guardrails
 - **Canonical-schema changes need sign-off first.** If the plan would change a published standard schema (the `#5`/`#56`/`#30` class of change), flag it and get the owner + ingestion-owner to sign off **before** the plan is treated as actionable — say so in `### Risks & unknowns`.
-- **All Searchlight cards live in `Zangow/IntegrationService`.** Skills themselves live in `Zangow/SearchlightClaude` (`$SL_BASE_PATH/.claude/`) — a plan that changes a skill still gets its card here.
 
 ## Related
 - `sl-issue` — implements + ships a ticket. Reads an `sl-plan` comment as the plan of record instead of re-planning (its step 1), so `/sl-plan` → `/sl-issue` is the intended pairing.
