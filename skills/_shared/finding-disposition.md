@@ -23,11 +23,12 @@ gets exactly:
 |---|------|----------------|
 | 1 | **`code-review --fix`** on the working tree (`sl-ship` step 1; `medium` by default) | yes — this is the fixing review |
 | 2 | **`sl-verify`** behavioural + requirements | yes — **one** repair round, Critical/High FAIL only |
-| 3 | **`code-review` on the open PR** (built-in, full PR URL) | no — **only** as `sl-ship` step 1's rung-2 fallback; the `code-review:code-review` plugin is uninstalled and must not be invoked |
+| 3 | **`code-review` on the open PR** (built-in, full PR URL) | no — **only** as `sl-ship` step 1's rung-2 fallback |
 | 4 | **One cold-agent handoff** (`sl-verify` step 3) | yes — **one per run, ever**, and only when row 2 came back genuinely close |
 
-Row 3 is not a routine step. It exists in one place: when the built-in `code-review` fails to launch,
-the plugin reviews a draft PR instead. It **replaces** row 1; it does not add to the budget.
+Row 3 is not a routine step. It exists in one place: when the built-in `code-review` fails to launch
+on the working tree, the same built-in reviews the open, ready PR instead. It **replaces** row 1; it
+does not add to the budget.
 
 Once the PR is open the pipeline stops editing code and the human review gate takes over — the user
 reading the run's report and approving the merge in `sl-issues` step 4c/4d. That gate is mandatory:
@@ -42,10 +43,8 @@ with no natural end.
 may include uncertain findings* — which is precisely the Medium/Low band this policy drops. Running a
 broad pass to then discard most of its output is pure waste, and `--fix` has no severity filter, so
 the discarded band gets *applied to the diff* before you can drop it. Default `medium`; spend `high`
-only when `sl-ship` step 1's trigger list fires — `--thorough`, or a diff touching auth/permissions,
-credentials/secrets, persistence/migrations, an external integration contract, or a published
-API/schema contract, or exceeding ~500 changed lines. `sl-ship` step 1 and `sl-verify`'s
-model-escalation policy carry the same list; if you change it, change all three.
+only on `--thorough` or when the diff hits `sl-verify`'s escalation trigger list ("Model & panel
+policy") — the one copy of that list, which `sl-ship` step 1 also reads.
 
 ## Severity ladder
 
