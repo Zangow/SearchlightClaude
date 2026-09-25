@@ -8,12 +8,12 @@ instead of restating it, so the rule changes in one place.
 | File | Rule | Pointed at from |
 |------|------|-----------------|
 | [`base-path.md`](./base-path.md) | resolve `$SL_BASE_PATH` / `$SL_REAL_BASE`, worktree repoint, fresh-shell exports | every sl-* skill that touches a checkout |
-| [`waiting.md`](./waiting.md) | never end a turn on a pending wait; bounded waits; one Gradle run per checkout | `sl-ship`, `sl-deploy`, `sl-core-worker`, `sl-verify-runner` |
+| [`waiting.md`](./waiting.md) | never end a turn on a pending wait; bounded waits; one Gradle run per checkout | `sl-ship`, `sl-deploy`, `sl-issue`, `sl-issues`, `sl-core-worker`, `sl-verify-runner` |
 | [`card-severity.md`](./card-severity.md) | every proposed/filed card carries `Severity:` + `Why this severity:` | `sl-issues` takeaways, `sl-subtask` children |
 | [`testing-policy.md`](./testing-policy.md) | AT by default, unit/integration always; only a full `./gradlew check` with a quoted test count backs green; Docker down = BLOCKED | `sl-issue`, `sl-plan`, `sl-subtask`, `sl-verify`, `sl-ship`, `sl-verify-runner` |
 | [`finding-disposition.md`](./finding-disposition.md) | fix Critical/High now, drop Medium/Low (below) | `sl-ship`, `sl-issue`, `sl-issues`, `sl-verify` |
 | [`model-orchestration.md`](./model-orchestration.md) | which model runs which role (below) | every skill that dispatches subagents |
-| [`review-gate.md`](./review-gate.md) | plan-time review panel: roster + escalation, adjudicate, one delta round, then ask | `sl-plan` step 5, `sl-subtask` step 6 |
+| [`review-gate.md`](./review-gate.md) | plan-time review panel: roster + escalation, adjudicate, one delta round, then ask | `sl-plan` step 5, `sl-subtask` step 6, `sl-issue` step 3 |
 
 ## `model-orchestration.md` — which Claude model runs which role
 

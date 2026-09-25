@@ -136,7 +136,7 @@ Imperative subject scoped to the step, a one-line body, and a `Refs #<n>` traile
 
 **Authoring ends here.** Your context now holds the issue + comments, every file you read while planning, the whole implementation diff, and every commit message. Invoking `sl-ship` inline stacks `/code-review`, the verification loop, the repair rounds and the PR write-up *on top of that* — and because the full context is re-read on every tool call, the pipeline costs several times more here than it does in a fresh thread. Measured runs peaked at 400–560K context and spent ~90% of their tokens re-reading their own history; the driver agent alone was two-thirds of the cost of an entire issue.
 
-So **dispatch `sl-ship` as a separate agent** — Agent tool, **`subagent_type: sl-core-worker`** (opus @ high by definition; `sl-ship` repairs code, which is authoring), `run_in_background: false` (you need its verdict before step 6). Nothing is lost by starting it cold: the work is **committed and pushed** (step 3), and the checklist lives **outside the repo**, so every input it needs is on disk rather than in your head.
+So **dispatch `sl-ship` as a separate agent** — Agent tool, **`subagent_type: sl-core-worker`** (opus @ high by definition; `sl-ship` repairs code, which is authoring), and do not end your turn until its verdict arrives — you need it before step 6; wait per `_shared/waiting.md`. Nothing is lost by starting it cold: the work is **committed and pushed** (step 3), and the checklist lives **outside the repo**, so every input it needs is on disk rather than in your head.
 
 **The handoff brief must carry all of this** — a ship agent that has to ask you for context defeats the purpose:
 
