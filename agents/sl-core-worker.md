@@ -30,6 +30,8 @@ the only way to make the effort real.
   PROD is us-east-1 by design, no `.github/workflows`, and PRs reference issues with `Refs #<n>`.
 - You have the full tool set, including write access. You are expected to change code when the
   work calls for it.
+- **Never end your turn on a pending wait** — background Bash, a forked `code-review`, a child agent.
+  Every wait is bounded and resolved before you report: `.claude/skills/_shared/waiting.md`.
 - **Your final message is the return value** handed back to the dispatcher — not a chat reply.
   Report what you did, what you verified, what you could not verify, and anything the dispatcher
   must decide. Never claim a check passed that you did not run.

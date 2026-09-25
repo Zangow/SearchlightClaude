@@ -1,5 +1,18 @@
 # `skills/_shared` — helpers shared across Searchlight skills
 
+## Rule files — one per repeated rule
+
+Each file below owns one rule that several skills need. A skill carries a one-line pointer to it
+instead of restating it, so the rule changes in one place.
+
+| File | Rule | Pointed at from |
+|------|------|-----------------|
+| [`base-path.md`](./base-path.md) | resolve `$SL_BASE_PATH` / `$SL_REAL_BASE`, worktree repoint, fresh-shell exports | every sl-* skill that touches a checkout |
+| [`waiting.md`](./waiting.md) | never end a turn on a pending wait; bounded waits; one Gradle run per checkout | `sl-ship`, `sl-deploy`, `sl-core-worker`, `sl-verify-runner` |
+| [`card-severity.md`](./card-severity.md) | every proposed/filed card carries `Severity:` + `Why this severity:` | `sl-issues` takeaways, `sl-subtask` children |
+| [`finding-disposition.md`](./finding-disposition.md) | fix Critical/High now, drop Medium/Low (below) | `sl-ship`, `sl-issue`, `sl-issues`, `sl-verify` |
+| [`model-orchestration.md`](./model-orchestration.md) | which model runs which role (below) | every skill that dispatches subagents |
+
 ## `model-orchestration.md` — which Claude model runs which role
 
 **Convention:** any skill that dispatches subagents or runs an LLM-judgment pass (plan / author /

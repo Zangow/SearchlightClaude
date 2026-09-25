@@ -6,7 +6,7 @@ effort: high
 
 # sl-subtask — one oversized card → an ordered set of PR-sized sub-issues (Searchlight)
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (the workspace container). Repo checkout: `$SL_BASE_PATH/IntegrationService`. If unset, set it first in every shell snippet: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`.
 
 The third front door alongside **`sl-plan`** (issue → reviewed plan, persisted on the card) and **`sl-issue`** (issue → shipped PR). Its single job is **decomposition**: take a card that is too big to build in one pass and turn it into a small, ordered set of children that each fit in one context and one PR.
 
@@ -138,6 +138,9 @@ Part <i> of <M> of #<parent> — <parent title>.
 **Repo:** <Zangow/IntegrationService | Zangow/SearchlightClaude> ·
 **Depends on:** #<a>, #<b> *(or "nothing — this is the first card")* ·
 **Blocks:** #<c>
+
+**Severity:** <Critical | High | Medium | Low — scale + rules in `_shared/card-severity.md`> ·
+**Why this severity:** <1–2 sentences; inherit #<parent>'s unless this child's consequence differs, and say why>
 
 **Change type:** <config-only | platform capability (GENERAL) | both> ·
 **Flyway migration:** <yes — V<n>__<name>.sql, additive | no> ·

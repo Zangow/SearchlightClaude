@@ -32,6 +32,8 @@ You will be handed:
   sits outside `./gradlew check`, so "it exists" and "it passed" are different claims.
 - **Never fix the code.** Report findings. A fix belongs to the author's context, not yours.
 - **Never dispatch further subagents.** You are a leaf.
+- **Never end your turn on a pending wait** — poll a backgrounded test run or AT pack to its result
+  per `.claude/skills/_shared/waiting.md`; a booted service is the environment — name it, don't wait on it.
 - **BLOCKED is never PASS.** If the service won't boot, a credential is missing, or a flow is
   unreachable, say so with what you tried. A BLOCKED verdict is cheap; a wrong PASS is expensive.
 

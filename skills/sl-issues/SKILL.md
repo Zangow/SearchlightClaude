@@ -6,7 +6,7 @@ effort: medium
 
 # sl-issues — batch queue over `sl-issue` (Searchlight)
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (the parent dir of the IntegrationService repo). If unset, set it first in every shell snippet: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`.
 
 This skill **does not implement anything itself**. It is a queue driver: it expands the issues you name into a full work list (each issue **plus its sub-issues**), then walks that list one item at a time, handing each item to a **fresh subagent that runs `/sl-issue`** in its own context. You stay in the loop between items — you see each run's results, decide whether to merge, and say when to start the next.
 
@@ -24,24 +24,15 @@ Space-delimited issue numbers and/or URLs — `/sl-issues 171`, `/sl-issues 173 
 
 This skill is **always interactive**: it pauses three times per item and you decide. There is no autonomous mode and no flag that removes the pauses — work does not reach `main` in this repo without a human looking at it. If you want a run to keep going unattended, that is a deliberate change to this skill, not a flag.
 
-So a takeaway is never filed behind your back. The driver **proposes** it at 4c with the severity and the exception it clears; you say file it or drop it. The bar below is what makes something worth proposing at all.
+So a takeaway is never filed behind your back. The driver **proposes** it at 4c; you say file it or drop it.
 
-**Default: propose nothing.** An `sl-issue` run is supposed to *finish* its card, not spawn the next three. Per `_shared/finding-disposition.md`, the child run has already fixed everything Critical/High in its own diff and dropped everything Medium/Low — so by the time a report reaches you, **most runs should have nothing to file.** If a batch is producing a card per item, that is the bug, not the feature. (#248 → #268 → fifteen open follow-ups is what this rule exists to prevent.)
+**Default: propose nothing.** An `sl-issue` run is supposed to *finish* its card, not spawn the next three. Per `_shared/finding-disposition.md`, the child run has already fixed everything Critical/High in its own diff and dropped everything Medium/Low — so **most runs should have nothing to file.** If a batch is producing a card per item, that is the bug, not the feature. (#248 → #268 → fifteen open follow-ups is what this rule exists to prevent.)
 
-A takeaway becomes a card **only** when it is **Critical or High severity** AND one of these is true:
-
-1. **It's not that card's code** — a real defect in a subsystem the diff didn't touch, where fixing it in-run would have meant a second unreviewable change riding along.
-2. **It needs a human decision or an ops action** — a product/scope question, an external contract change, a Flyway migration, a deploy, a live-config republish, a published canonical-schema change.
-3. **It's blocked** — a missing live token or credential, an unavailable environment, a third party.
-
-Everything else is **dropped**: Medium and Low regardless of exception, and anything vague ("we should look into X", "consider extracting Y", "add more tests"). Dropped means *gone* — not a card, not a line in the queue, not carried into the next prompt. At most one line in the final summary.
-
-State the severity and which exception applies **in the card body**. If you can't name one, you don't file. Two consecutive items filing nothing is the healthy case, not a sign you're missing things.
+> **Card severity:** every proposed/filed card carries `Severity:` + `Why this severity:` per `_shared/card-severity.md`. A takeaway is admitted **only** at Critical/High **and** with the `finding-disposition.md` exception it clears (not that card's code / needs a human decision or ops action / blocked). Missing any of the three → drop it; don't infer. Anything vague ("we should look into X", "consider extracting Y", "add more tests") is dropped too. Dropped means *gone* — not a card, not a queue line, not carried into the next prompt.
 
 **Before filing, check it against the cards this batch has already filed.** If it is the same substance as an existing one, comment on that card instead — two runs noticing the same missing index must not produce two cards.
 
 ```bash
-export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"
 REPO=Zangow/IntegrationService
 
 # 1. create the card
@@ -50,7 +41,9 @@ URL=$(gh issue create --repo "$REPO" \
   --body "$(cat <<'EOF'
 Filed from the `/sl-issues` run on #<item>, with the user's approval.
 
-**Severity:** Critical|High · **Why it wasn't fixed in-run:** <exception 1, 2, or 3>
+**Severity:** Critical|High
+**Why this severity:** <copied verbatim from the run's proposal>
+**Why it wasn't fixed in-run:** <exception 1, 2, or 3>
 
 **Surface:** … · **Change type:** … · **Flyway migration:** … · **Deploy needed:** … · **Live configs to republish:** …
 
@@ -173,7 +166,7 @@ The subagent prompt must carry:
 1. **The invocation**: "Invoke the `sl-issue` skill (Skill tool, `skill: sl-issue`) with `<n>` *(plus `--skip-worktree` if the user passed it)* and follow it end to end."
 2. **The no-interaction rule**: "You cannot reach the user. If you hit a requirement that is ambiguous in a way that changes *what* to build, do **not** guess and do **not** proceed — stop and return `BLOCKED:` followed by the specific question and the concrete options you'd offer. Resolve pure implementation choices yourself."
 3. **Batch context** when it matters: "This is item `<i>` of `<N>`; item `<i-1>` (#`<prev>`) is <merged | open in PR #X and NOT merged, so your `origin/main` base does not contain it>." Call out explicitly when the previous item added a **Flyway migration** — the next item must not reuse that version number.
-4. **The report contract** — end your final message with: issue title + URL; PR URL; the requirements checklist with each row's ✅/❌ and evidence; verification verdict; whether an `sl-plan` plan of record was adopted (and what drifted if amended); confirmation the card moved to "In review"; the worktree root path and whether it was removed; and explicitly — **caveats, deferred/out-of-scope requirements, and follow-ups worth filing**, plus the **ops footprint** (`### Ops / rollout`): does this need a backend/UI/embed/infra **deploy**, does it add a **Flyway migration**, and which live integration configs must be **republished** afterwards.
+4. **The report contract** — end your final message with: issue title + URL; PR URL; the requirements checklist with each row's ✅/❌ and evidence; verification verdict; whether an `sl-plan` plan of record was adopted (and what drifted if amended); confirmation the card moved to "In review"; the worktree root path and whether it was removed; and explicitly — **caveats, deferred/out-of-scope requirements, and follow-ups worth filing** (each with `Severity:` + `Why this severity:` per `_shared/card-severity.md`), plus the **ops footprint** (`### Ops / rollout`): does this need a backend/UI/embed/infra **deploy**, does it add a **Flyway migration**, and which live integration configs must be **republished** afterwards.
 
 ### 4c. Report back to the user
 Relay the run's outcome in the terminal — the subagent's report is **not** shown to the user, so surface it yourself: PR URL, the requirements table with ✅/❌, the verify verdict, the worktree path, the card's column, and **every caveat and follow-up, up front rather than buried**. Always call out the **ops footprint** (deploy / migration / configs to republish) — that's what turns a merged PR into a working change, and it's the easiest thing to lose in a batch. Then stop and let the user respond — questions, corrections, "change this before merging" — this is their interaction point.

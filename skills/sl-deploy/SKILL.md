@@ -6,7 +6,7 @@ effort: medium
 
 # sl-deploy — deploy IntegrationService to QA or PROD
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (if unset: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`). Repo checkout: `$SL_BASE_PATH/IntegrationService`. **Always `cd "$SL_BASE_PATH/IntegrationService"` first.** Unlike `sl-issue`, deploys run from the **real checkout, never a worktree** — the image tag is a commit SHA that must reproduce what's deployed.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`, **including its `sl-deploy` exception**: deploys run from the **real checkout, never a worktree** — the image tag is a commit SHA that must reproduce what's deployed. **Always `cd "$SL_BASE_PATH/IntegrationService"` first.**
 
 This skill orchestrates the repo's own deploy scripts — it does not reimplement them. All AWS work uses **`AWS_PROFILE=searchlight`** (account 911229172008). **Region split is intentional: QA = us-west-2, PROD = us-east-1.** The scripts resolve region themselves (`export_resource_region`); your own verification `aws` calls must pass `--region` explicitly.
 
@@ -63,7 +63,7 @@ Print exactly what will happen: components → scripts, environment, the commit 
 
 ## Step 4 — Execute
 
-Run each selected deploy **in the background** with logs to the scratchpad, and monitor (these take minutes: tests + build + push + apply + wait + smoke).
+Run each selected deploy **in the background** with logs to the scratchpad, and wait on it per `_shared/waiting.md` — rc wrapper + bounded poll slices (these take minutes: tests + build + push + apply + wait + smoke).
 
 **Backend:**
 ```bash
@@ -81,7 +81,7 @@ Useful flags: `--skip-build` (reuse an already-pushed/replicated SHA — the pro
 AWS_PROFILE=searchlight scripts/deploy-ui.sh <env>   > <scratchpad>/deploy-ui-<env>.log 2>&1
 ```
 
-Watch each log; on a non-zero exit surface the `[fail]` line. `deploy-backend.sh` already gates on `ecs wait services-stable` + smoke, so a green exit means the service came up. If the backend deploy fails smoke, the escape hatch is `scripts/rollback-backend.sh <env>` (points the service at the prior task-def revision, no rebuild).
+When each `rc` lands, read it (not a trailing `tail`'s exit code); on non-zero surface the log's `[fail]` line. `deploy-backend.sh` already gates on `ecs wait services-stable` + smoke, so a green exit means the service came up. If the backend deploy fails smoke, the escape hatch is `scripts/rollback-backend.sh <env>` (points the service at the prior task-def revision, no rebuild).
 
 ## Step 5 — Verify (beyond what the scripts already assert)
 
@@ -119,7 +119,7 @@ export ADMIN_API_KEY="$(scripts/admin-key.sh qa)"
 export WEBSITE_API_KEY="$(AWS_REGION=us-west-2 aws secretsmanager get-secret-value \
   --secret-id integration-service/qa/app/website-api-key --version-stage AWSCURRENT \
   --query SecretString --output text)"
-scripts/run-acceptance.sh qa   > <scratchpad>/acceptance-qa.log 2>&1   # run in background; watch the log
+scripts/run-acceptance.sh qa   > <scratchpad>/acceptance-qa.log 2>&1   # background + poll per _shared/waiting.md
 ```
 Add `--push-contract` when the change touches webhook/push ingestion **and** those contracts are deployed to QA — without it those scenarios stay skipped.
 
