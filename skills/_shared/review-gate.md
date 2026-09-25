@@ -28,21 +28,24 @@ Never below the default — the `sl-panel-reviewer` is the panel's non-Opus voic
 ## The five steps
 
 1. **Dispatch the roster in one message, concurrently.** Each reviewer gets the issue URL, the
-   step-2 grounding, the artifact text (plan or breakdown), and its lens — never your reasoning for
-   the artifact. Ask each to tag every finding **`BLOCKER`** (would make a checklist row untrue, or
-   break `main`, a deploy or live data if built as written) or **`CONCERN`** (anything else), anchored
-   to a `file:line`, a plan step or a card number. An unanchored finding is a CONCERN at most.
-2. **Adjudicate every BLOCKER** — inline or via `sl-adjudicator`, per `model-orchestration.md` step
-   5. Each is **confirmed**, **demoted** to a CONCERN, or **dropped**. An inline demote or drop cites
-   the anchor you opened to check it; if you are torn, the BLOCKER stands. **Only confirmed BLOCKERs
-   change the artifact.**
+   step-2 grounding (the `file:line` anchors — after inline grounding, a short list of them), the
+   artifact text (plan or breakdown), and its lens — never your reasoning for the artifact. Ask each
+   to tag every finding **`BLOCKER`** (would make a checklist row untrue, or break `main`, a deploy
+   or live data if built as written) or **`CONCERN`** (anything else), anchored to a `file:line`, a
+   plan step or a card number. An unanchored finding is a CONCERN at most.
+2. **Adjudicate every BLOCKER** — inline on the thread running the skill, or via `sl-adjudicator`,
+   per `model-orchestration.md` step 5. Each is **confirmed**, **demoted** to a CONCERN, or
+   **dropped**. An inline demote or drop cites the anchor you opened to check it; if you are torn,
+   the BLOCKER stands. A CONCERN that meets the BLOCKER test above is **promoted** and treated as
+   confirmed. **Every confirmed BLOCKER must change the artifact**; a CONCERN may be folded in or
+   accepted.
 3. **Keep a CONCERN ledger.** Every CONCERN — raised or demoted — gets a one-line disposition
    (addressed, or consciously accepted and why) where the caller records the verdict. It is never
    re-litigated.
 4. **One re-review round, on the delta only — and only if step 2 confirmed a BLOCKER.** Re-dispatch
-   the `sl-depth-reviewer` alone with the amended artifact, the confirmed BLOCKERs and the ledger (a
-   fresh agent has no memory; without the ledger it re-raises settled decisions). Adjudicate its
-   BLOCKERs as in step 2.
+   the `sl-depth-reviewer`, plus any `sl-panel-reviewer` whose BLOCKER was confirmed, with the amended
+   artifact, the confirmed BLOCKERs and the ledger (a fresh agent has no memory; without the ledger
+   it re-raises settled decisions). Adjudicate their BLOCKERs as in step 2.
 5. **Still a confirmed BLOCKER after round 2 → `AskUserQuestion`.** Offer: split the work (`/sl-subtask
    <n>` from `sl-plan`; a two-level split from `sl-subtask`), accept the remaining BLOCKERs as
    documented CONCERNs and proceed, narrow the card's scope, or abandon. **Never dispatch a round 3

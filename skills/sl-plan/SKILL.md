@@ -60,7 +60,7 @@ A plan that names no files is a wish. Find the real surfaces this ticket touches
 - **Ops / deploy** — `IntegrationService/scripts/`
 - **Tests** — `src/test/`, `src/integrationTest` equivalents, `acceptance-tests/`, `e2e/`
 
-**Cap the fan-out at 3.** Decide which surfaces are plausible first, and skip the ones the ticket obviously doesn't touch. **One or two plausible surfaces → ground them inline** on this thread (Grep / Glob / `git ls-files` / Read); dispatch nothing. **Three or more → fresh `Explore` agents in one message, never more than 3**, one per plausible group: **Backend + Schema**, **Admin UI + Embed**, **Infra + Ops** — Tests ride with the surface they test. Never dispatch a fourth; widen an agent's brief instead.
+**Cap the fan-out at 3.** Decide which surfaces are plausible first, and skip the ones the ticket obviously doesn't touch; Tests don't count toward the number. **One or two plausible surfaces → ground them inline** on this thread (Grep / Glob / `git ls-files` / Read); dispatch nothing. **Three or more → fresh `Explore` agents in one message, never more than 3**, one per plausible group: **Backend + Schema**, **Admin UI + Embed**, **Infra + Ops** — Tests ride with the surface they test. Never dispatch a fourth; widen an agent's brief instead.
 
 Ask each pass for: where this behavior lives today, the **closest existing implementation to copy** (the house pattern beats a novel one), what would have to change, what's already there that the ticket may not know about, and where the matching tests live.
 
@@ -167,7 +167,7 @@ ${SL_REAL_BASE:-$SL_BASE_PATH}/.sl-issue/REQUIREMENTS-<n>.md
 ### 5. Plan-review gate  ← before it lands on the card
 A plan nobody checked is worth less than no plan, because it gets trusted. Run it through `_shared/review-gate.md` — the roster (1× `sl-depth-reviewer` + 1–2× `sl-panel-reviewer`, escalated on its triggers), adjudication, the one delta round and the hand-off to you all live there. This step owns only the lenses and where the verdict lands:
 
-- **Lenses** — the `sl-depth-reviewer` asks *will this plan satisfy every checklist row, and what breaks?*; each `sl-panel-reviewer` takes one of: edge cases, missed states & a simpler alternative; integration-contract & live-data blast radius; or ops/deploy/migration ordering.
+- **Lenses** — the `sl-depth-reviewer` asks *will this plan satisfy every checklist row, and what breaks?*; each `sl-panel-reviewer` takes one of: edge cases, missed states & a simpler alternative; integration-contract & live-data blast radius; or ops/deploy/migration ordering — the one the plan is most exposed to first.
 - **Verdict** — confirmed BLOCKERs are folded into the plan; the CONCERN ledger and the reviewing models go in the plan's `### Plan review` section.
 
 > **Review gate:** roster → dispatch → adjudicate → one delta round → ask, per `_shared/review-gate.md`.

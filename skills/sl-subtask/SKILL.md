@@ -75,7 +75,7 @@ Find the real surfaces this card touches — inline, or with fresh **`Explore`**
 - **Tests** — `acceptance-tests/`, `e2e/specs/*.spec.ts`, `src/integrationTest/`, `src/test/`
 - **Skills** — `$SL_BASE_PATH/.claude/skills/` (a **separate repo**, `Zangow/SearchlightClaude`)
 
-**Cap the fan-out at 3.** Decide which surfaces are plausible first, and skip the ones the card obviously doesn't touch. **One or two plausible surfaces → ground them inline** on this thread (Grep / Glob / `git ls-files` / Read); dispatch nothing. **Three or more → fresh `Explore` agents in one message, never more than 3**, one per plausible group: **Backend + Schema**, **Admin UI + Embed**, **Infra + Ops + Skills** — Tests ride with the surface they test. Never dispatch a fourth; widen an agent's brief instead.
+**Cap the fan-out at 3.** Decide which surfaces are plausible first, and skip the ones the card obviously doesn't touch; Tests don't count toward the number. **One or two plausible surfaces → ground them inline** on this thread (Grep / Glob / `git ls-files` / Read); dispatch nothing. **Three or more → fresh `Explore` agents in one message, never more than 3**, one per plausible group: **Backend + Schema**, **Admin UI + Embed**, **Infra + Ops + Skills** — Tests ride with the surface they test. Never dispatch a fourth; widen an agent's brief instead.
 
 Ask each pass for what `sl-plan` asks (where this behavior lives today, the **closest existing pattern to copy**, what has to change, what's already there the card may not know about, where the matching tests live — all as `file:line`) **plus the three things this skill specifically needs**:
 
@@ -181,7 +181,7 @@ being extended, and say how a new AT actually gets run.>
 ### 6. Breakdown-review gate  ← before anything is filed
 A breakdown nobody checked is worse than none, because the queue trusts it. Run it through `_shared/review-gate.md` — the roster (1× `sl-depth-reviewer` + 1–2× `sl-panel-reviewer`, escalated on its triggers), adjudication, the one delta round and the hand-off to you all live there. This step owns only the lenses and where the verdict lands:
 
-- **Lenses** — the `sl-depth-reviewer` takes *coverage*: does the union of these cards deliver the whole parent, what fell **between** two cards, is any card too big for one context or one reviewable PR? Each `sl-panel-reviewer` takes one of: ordering, migrations & deploy seams (a card that can't start where the line says it can, a hidden dependency); surface & duplication (a card that secretly spans two surfaces, work done twice, missed empty/error/credential-expiry/rate-limit work); or integration-contract & live-data blast radius.
+- **Lenses** — the `sl-depth-reviewer` takes *coverage*: does the union of these cards deliver the whole parent, what fell **between** two cards, is any card too big for one context or one reviewable PR? Each `sl-panel-reviewer` takes one of: ordering, migrations & deploy seams (a card that can't start where the line says it can, a hidden dependency); surface & duplication (a card that secretly spans two surfaces, work done twice, missed empty/error/credential-expiry/rate-limit work); or integration-contract & live-data blast radius — the one the breakdown is most exposed to first.
 - **Verdict** — confirmed BLOCKERs are folded into the cut, then re-run the step-4 self-check if the order moved; the CONCERN ledger and the reviewing models go in the step-7 presentation and the Output report.
 
 > **Review gate:** roster → dispatch → adjudicate → one delta round → ask, per `_shared/review-gate.md`.
