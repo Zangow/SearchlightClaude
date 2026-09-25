@@ -26,7 +26,7 @@ check() {  # name expected-exit expected-stdout-substring(or "") -- cmd args...
 
 # ---------------------------------------------------------------- gradle-busy.sh
 BUSY="$HERE/gradle-busy.sh"
-mkdir -p "$T/real/IS/acceptance-tests" "$T/real/IS2" "$T/real/wt/IS"
+mkdir -p "$T/real/IS/acceptance-tests" "$T/real/IS2" "$T/real/wt/IS" "$T/real/my IS"
 ln -s "$T/real" "$T/link"
 PS="$T/ps.txt"; CWDS="$T/cwds.txt"
 cat >"$T/ps.sh" <<EOF
@@ -39,7 +39,7 @@ cat "$PS"
 EOF
 cat >"$T/lsof.sh" <<EOF
 #!/usr/bin/env bash
-d=\$(awk -v p="\$1" '\$1==p {print \$2}' "$CWDS"); [ -n "\$d" ] && printf 'p%s\nfcwd\nn%s\n' "\$1" "\$d"
+d=\$(awk -v p="\$1" '\$1==p {sub(/^[^ ]+ /, ""); print}' "$CWDS"); [ -n "\$d" ] && printf 'p%s\nfcwd\nn%s\n' "\$1" "\$d"
 EOF
 chmod +x "$T/ps.sh" "$T/lsof.sh"
 export GRADLE_BUSY_PS_CMD="$T/ps.sh" GRADLE_BUSY_LSOF_CMD="$T/lsof.sh" GRADLE_BUSY_POLL_SECS=1
@@ -67,6 +67,8 @@ reset; worker 105 >"$PS"; echo "105 $T/real/wt/IS" >"$CWDS"
 check "test worker in another checkout → clear"        0 ""        "$BUSY" "$T/real/IS"
 reset; echo "106 0:05 /usr/bin/java -cp x org.gradle.wrapper.GradleWrapperMain test" >"$PS"; echo "106 $T/real/IS" >"$CWDS"
 check "old-style GradleWrapperMain, by cwd → busy"     4 "^106 "   "$BUSY" "$T/real/IS"
+reset; wrapper 109 "$T/real/my IS" >"$PS"; echo "109 $T/real/my IS" >"$CWDS"
+check "wrapper root with a space, by cwd → busy"       4 "^109 "   "$BUSY" "$T/real/my IS"
 reset; wrapper 107 "$T/real/IS" >"$PS"; : >"$T/ps.later"; echo 2 >"$T/ps.after"
 check "build finishes within --wait → clear"           0 ""        "$BUSY" "$T/real/IS" --wait 10
 reset; wrapper 108 "$T/real/IS" >"$PS"

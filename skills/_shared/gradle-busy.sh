@@ -21,7 +21,7 @@
 # Gradle daemon itself, which is shared across checkouts and idles between builds.
 # Paths are compared in physical (pwd -P) form, so a symlinked ancestor cannot hide a build.
 #
-# Test hooks (used by test-gradle-busy.sh): GRADLE_BUSY_PS_CMD replaces `ps -Ao pid=,etime=,command=`,
+# Test hooks (used by test-gradle-scripts.sh): GRADLE_BUSY_PS_CMD replaces `ps -Ao pid=,etime=,command=`,
 # GRADLE_BUSY_LSOF_CMD replaces `lsof -a -d cwd -Fn -p` (the PID is appended), GRADLE_BUSY_POLL_SECS
 # replaces the 10 s --wait poll interval.
 set -uo pipefail
@@ -92,7 +92,12 @@ scan() {  # prints busy lines; returns 0 if any
     root=""
     case "$cmd" in
       *gradle-wrapper.jar*|*GradleWrapperMain*)
-        if root="$(wrapper_root "$cmd")"; then root="$(physical "$root")"; else root="$(cwd_of "$pid")"; fi ;;
+        # A root that isn't absolute is a path with a space split by the word loop — use the cwd.
+        if root="$(wrapper_root "$cmd")" && [ "${root#/}" != "$root" ]; then
+          root="$(physical "$root")"
+        else
+          root="$(cwd_of "$pid")"
+        fi ;;
       *"Gradle Test Executor"*)
         root="$(cwd_of "$pid")" ;;
       *) continue ;;
