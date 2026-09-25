@@ -93,13 +93,14 @@ Run each selected deploy **in the background** with logs to the scratchpad, and 
 
 **Backend** — each leg in its own subshell, MFA session loaded and the app env scrubbed (Guardrails 8, 9):
 ```bash
+# --skip-webhook-smoke on every leg; drop it only when ACCEPTANCE_TOKEN is set (see Flags below).
 # qa:
 ( . <scratchpad>/mfa.env && unset AWS_PROFILE AWS_REGION AWS_ENDPOINT_URL ADMIN_API_KEY WEBSITE_API_KEY INTERNAL_API_KEY DB_URL &&
-  scripts/deploy-backend.sh qa ) > <scratchpad>/deploy-backend-qa.log 2>&1
+  scripts/deploy-backend.sh qa --skip-webhook-smoke ) > <scratchpad>/deploy-backend-qa.log 2>&1
 # prod (only after the explicit yes — Guardrail 3). --skip-build: the SHA is already pushed (Guardrail 4);
 # drop it only when Step 5's describe-images finds no image for this SHA (a prod-only deploy of a never-built commit):
 ( . <scratchpad>/mfa.env && unset AWS_PROFILE AWS_REGION AWS_ENDPOINT_URL ADMIN_API_KEY WEBSITE_API_KEY INTERNAL_API_KEY DB_URL &&
-  DEPLOY_ASSUME_YES=1 scripts/deploy-backend.sh prod --skip-build ) > <scratchpad>/deploy-backend-prod.log 2>&1
+  DEPLOY_ASSUME_YES=1 scripts/deploy-backend.sh prod --skip-build --skip-webhook-smoke ) > <scratchpad>/deploy-backend-prod.log 2>&1
 ```
 Flags:
 - `--skip-build` — reuse an already-pushed image for this SHA (Guardrail 4). Confirm the tag exists first with the Step 5 `describe-images` call.
