@@ -6,7 +6,7 @@ effort: high
 
 # sl-verify — orchestrate independent, unbiased verification (Searchlight)
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (if unset: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`). Repo checkout: `$SL_BASE_PATH/IntegrationService`. In worktree mode (`sl-issue` default) `SL_BASE_PATH` is repointed at the worktree root and `$SL_REAL_BASE` holds the true base — non-repo artifacts (requirements checklists) resolve through `${SL_REAL_BASE:-$SL_BASE_PATH}`.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`.
 
 Runs the full verification loop for an IntegrationService change. The point is **independence where it pays**: the judgment calls (does the change really behave as required?) are verified by a fresh agent that did not write the code, so mistakes aren't rationalized away — while deterministic checks run inline, because there is no authoring bias in an exit code.
 

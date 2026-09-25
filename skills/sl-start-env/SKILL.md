@@ -6,7 +6,7 @@ effort: low
 
 # sl-start-env — bring up the local IntegrationService environment
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (if unset: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`). Repo checkout: `$SL_BASE_PATH/IntegrationService`. In worktree mode (`sl-issue` default) `SL_BASE_PATH` is repointed at the worktree root and `$SL_REAL_BASE` holds the true base — boot exactly as normal, just from the worktree checkout. `cd "$SL_BASE_PATH/IntegrationService"` before any command so this works regardless of where the skill was launched.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`. In worktree mode, boot exactly as normal from the worktree checkout. `cd "$SL_BASE_PATH/IntegrationService"` before any command so this works regardless of where the skill was launched.
 
 Single Spring Boot service backed by Dockerized Postgres + LocalStack, plus two Vite front-ends. **No SSM tunnels, no `fetch-env`, no shared-qa database** — every dependency runs on the local machine, so booting has no blast radius beyond this host. That is the key contrast with `dw-start-env`: **Flyway runs on startup against the *local* Postgres**, never a shared environment, so there is **no migration hard-block gate** — pending migrations just apply to the throwaway local DB. (If a migration ever looks wrong, that's a code review concern, not a boot blocker.)
 

@@ -6,7 +6,7 @@ effort: high
 
 # sl-ship — code-complete → review-ready PR (Searchlight)
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (if unset: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`). Repo checkout: `$SL_BASE_PATH/IntegrationService`. In worktree mode (`sl-issue` default) `SL_BASE_PATH` is already repointed at the worktree root — everything here works unchanged.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`.
 
 The top-level pipeline that takes a finished change through quality, independent verification, and PR creation. Run it once the code does what's intended; it does **not** write the feature.
 

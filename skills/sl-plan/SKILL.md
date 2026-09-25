@@ -6,7 +6,7 @@ effort: high
 
 # sl-plan — GitHub issue → a reviewed plan, persisted on the card (Searchlight)
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (the workspace container). Repo checkout: `$SL_BASE_PATH/IntegrationService`. If unset, set it first in every shell snippet: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`.
 
 The planning front door alongside **`sl-issue`** (issue → shipped PR). Its single job is **the plan**: understand the ticket, ground it in the actual code, resolve the unknowns **with the user**, get the plan independently reviewed, and **persist it on the GitHub issue** so the thinking survives this session.
 

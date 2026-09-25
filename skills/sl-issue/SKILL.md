@@ -6,7 +6,7 @@ effort: high
 
 # sl-issue — GitHub issue → implemented → shipped PR (Searchlight)
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (the parent dir of the IntegrationService repo). Repo checkout: `$SL_BASE_PATH/IntegrationService`. If unset, set it first in every shell snippet: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`.
 
 The autonomous front door for issue-driven Searchlight work. Given a GitHub issue, this skill **fetches** the requirements, **plans + implements** the change, then hands the finished code to **`sl-ship`** to take it through quality → independent verification → PR. The one responsibility versus `sl-ship` (which never writes the feature) is the **authoring phase** and the **requirements checklist** that threads through verification and the PR.
 

@@ -7,7 +7,7 @@ effort: low
 
 # sl-start-embed — host the customer embed against a deployed env, and verify it
 
-> **Base path is `$SL_BASE_PATH`**, defaulting to `/Users/danieljohnston/git/Searchlight` (if unset: `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`). Repo checkout: `$SL_BASE_PATH/IntegrationService`. **Always `cd "$SL_BASE_PATH/IntegrationService"` first.** This skill orchestrates the repo's own `scripts/sl-start-embed` — it does not reimplement it. All AWS work uses **`AWS_PROFILE=searchlight`** (account 911229172008); the script resolves per-env region itself.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`. **Always `cd "$SL_BASE_PATH/IntegrationService"` first.** This skill orchestrates the repo's own `scripts/sl-start-embed` — it does not reimplement it. All AWS work uses **`AWS_PROFILE=searchlight`** (account 911229172008); the script resolves per-env region itself.
 
 This starts a **long-lived local server** (a proxy + test page), so run it **in the background** with logs to the scratchpad and then verify it came up — never block the turn on it.
 
