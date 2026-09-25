@@ -30,9 +30,10 @@ Never below the default — the `sl-panel-reviewer` is the panel's non-Opus voic
 1. **Dispatch the roster in one message, concurrently.** Each reviewer gets the issue URL, the
    step-2 grounding (the `file:line` anchors — after inline grounding, a short list of them), the
    artifact text (plan or breakdown), and its lens — never your reasoning for the artifact. Ask each
-   to tag every finding **`BLOCKER`** (would make a checklist row untrue, or break `main`, a deploy
-   or live data if built as written) or **`CONCERN`** (anything else), anchored to a `file:line`, a
-   plan step or a card number. An unanchored finding is a CONCERN at most.
+   to tag every finding **`BLOCKER`** (would make a checklist row — for a breakdown, a parent
+   requirement — untrue, or break `main`, a deploy or live data if built as written) or
+   **`CONCERN`** (anything else), anchored to a `file:line`, a plan step or a card number. An
+   unanchored finding is a CONCERN at most.
 2. **Adjudicate every BLOCKER** — inline on the thread running the skill, or via `sl-adjudicator`,
    per `model-orchestration.md` step 5. Each is **confirmed**, **demoted** to a CONCERN, or
    **dropped**. An inline demote or drop cites the anchor you opened to check it; if you are torn,
@@ -43,7 +44,8 @@ Never below the default — the `sl-panel-reviewer` is the panel's non-Opus voic
    (addressed, or consciously accepted and why) where the caller records the verdict. It is never
    re-litigated.
 4. **One re-review round, on the delta only — and only if step 2 confirmed a BLOCKER.** Re-dispatch
-   the `sl-depth-reviewer`, plus any `sl-panel-reviewer` whose BLOCKER was confirmed, with the amended
+   the `sl-depth-reviewer` plus every `sl-panel-reviewer` whose BLOCKER was confirmed — and always at
+   least one `sl-panel-reviewer`, so round 2 keeps its non-Opus voice — with the amended
    artifact, the confirmed BLOCKERs and the ledger (a fresh agent has no memory; without the ledger
    it re-raises settled decisions). Adjudicate their BLOCKERs as in step 2.
 5. **Still a confirmed BLOCKER after round 2 → `AskUserQuestion`.** Offer: split the work (`/sl-subtask

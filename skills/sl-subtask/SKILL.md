@@ -188,7 +188,7 @@ A breakdown nobody checked is worse than none, because the queue trusts it. Run 
 
 Note in the parent comment that the per-card **plan review still has to happen** — `/sl-plan` or `/sl-issue`'s own gate on each child. This breakdown reviewed the *cut*, not the method.
 
-### 7. Present it + one checkbox gate  ← the only pause
+### 7. Present it + one checkbox gate  ← the only routine pause (step 6's review gate asks only if a BLOCKER survives round 2)
 Print the breakdown to the terminal as a checkbox table — **everything checked by default** — plus the dependency graph and the deploy seams:
 
 ```

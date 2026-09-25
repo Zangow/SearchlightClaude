@@ -147,7 +147,7 @@ ${SL_REAL_BASE:-$SL_BASE_PATH}/.sl-issue/REQUIREMENTS-<n>.md
 - <explicitly not doing, so nobody assumes it>
 
 ### Plan review
-<Verdict from step 5: the panel's blockers folded in, plus any concern consciously accepted with a one-line reason. Name which models reviewed.>
+<Verdict from step 5 (`_shared/review-gate.md`): the confirmed BLOCKERs folded in, and the CONCERN ledger — every CONCERN, raised or demoted, with a one-line disposition (addressed, or accepted and why). Name which models reviewed.>
 
 ---
 > **For a future `/sl-issue` (or any agent picking this up):** this is the **plan of record** for
