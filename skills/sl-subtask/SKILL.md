@@ -139,6 +139,9 @@ Part <i> of <M> of #<parent> — <parent title>.
 **Depends on:** #<a>, #<b> *(or "nothing — this is the first card")* ·
 **Blocks:** #<c>
 
+**Severity:** <Critical | High | Medium | Low — scale + rules in `_shared/card-severity.md`> ·
+**Why this severity:** <1–2 sentences; inherit #<parent>'s unless this child's consequence differs, and say why>
+
 **Change type:** <config-only | platform capability (GENERAL) | both> ·
 **Flyway migration:** <yes — V<n>__<name>.sql, additive | no> ·
 **Deploy needed:** <none | backend QA+PROD | UI | embed | infra/Terraform> ·
