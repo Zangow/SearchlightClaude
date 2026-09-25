@@ -44,8 +44,9 @@ dominates.
    - **Lens** — give each reviewer a distinct angle (correctness · spec-conformance · security ·
      edge-cases). Diverse lenses add more coverage than a duplicate reviewer.
    - **Model** — one **`sl-depth-reviewer`** (Opus, depth) **+ 1–2 `sl-panel-reviewer`** (Sonnet,
-     breadth + decorrelated errors), scaled up only for wide-blast-radius work. Keep **at least one
-     non-Opus voice** so a systematic Opus blind spot can't survive the panel.
+     breadth + decorrelated errors), scaled up only for wide-blast-radius work (for plan-time
+     panels the triggers and round budget are `review-gate.md`). Keep **at least one non-Opus
+     voice** so a systematic Opus blind spot can't survive the panel.
 3. **Nominate → adjudicate — never flat-vote.** Every panelist — the depth lens included —
    *nominates* candidate findings; a single **Opus** pass *adjudicates* which are real. Breadth
    lenses exist to widen the net, so they raise candidates that don't hold up; counting those as
@@ -117,11 +118,11 @@ it is asked. Four rules follow for every skill and agent in this repo:
 
 | Role | Model | Effort | Dispatch as |
 |------|-------|--------|-------------|
-| Plan / architect | **Opus** | **high** | main thread (or `Plan` agent, then own the result) |
+| Plan / architect | **Opus** | **high** | main thread, inline — never a planning agent |
 | Author / implement | **Opus** | **high** | main thread; `sl-core-worker` when a skill hands the role to a fresh agent (`sl-issues` items, `sl-issue`'s ship handoff) |
 | Adjudicate panel findings | **Opus** | the active skill's (inline); **high** as `sl-adjudicator` | main thread, inline (the default); `sl-adjudicator` when the session is not Opus |
 | Verify (behaviour + requirements) | **Sonnet**, → Opus on `sl-verify`'s triggers and for the requirements pass | **medium** | `sl-verify-runner` |
-| Ground the plan in real files | inherit | inherit | `Explore` |
+| Ground the plan in real files | inherit | inherit | inline for ≤2 surfaces; else `Explore`, ≤3 (`sl-plan` / `sl-subtask` step 2) |
 | Review panel — depth lens | **Opus** | **high** | `sl-depth-reviewer` |
 | Review panel — breadth lenses (×1–2) | **Sonnet** | **medium** | `sl-panel-reviewer` — decorrelation comes from *being a different model*, not from thinking longer |
 | Mechanical checks (build/test/lint) | — | — | **inline, main thread** — an exit code has no authoring bias |

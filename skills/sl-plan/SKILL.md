@@ -50,7 +50,7 @@ Then check two things on the card before planning anything:
 **This skill never moves the card and never assigns it.** Planning isn't starting work — the card stays exactly where it sits (`Backlog` / `Ready`), and `sl-issue` moves it to "In progress" when the real work kicks off.
 
 ### 2. Ground the plan in the actual codebase  ← before writing a single planning word
-A plan that names no files is a wish. Fan out fresh **`Explore`** agents (Agent tool, `subagent_type: Explore`, dispatched in **one** message so they run concurrently) over the surfaces this ticket plausibly touches. Each returns **`file:line` anchors and the existing pattern to follow**, not prose:
+A plan that names no files is a wish. Find the real surfaces this ticket touches — each grounding pass (inline, or an `Explore` agent: Agent tool, `subagent_type: Explore`) returns **`file:line` anchors and the existing pattern to follow**, not prose. The candidate surfaces:
 
 - **Backend** — `$SL_BASE_PATH/IntegrationService/src/main/java/io/searchlightdigital/integration/` (`api` · `domain` · `mapping` · `hydration` · `polling` · `delivery` · `config`)
 - **Schema** — `src/main/resources/db/migration/V*.sql` (Flyway, **additive-only**, `ddl-auto: validate`)
@@ -60,7 +60,9 @@ A plan that names no files is a wish. Fan out fresh **`Explore`** agents (Agent 
 - **Ops / deploy** — `IntegrationService/scripts/`
 - **Tests** — `src/test/`, `src/integrationTest` equivalents, `acceptance-tests/`, `e2e/`
 
-Ask each for: where this behavior lives today, the **closest existing implementation to copy** (the house pattern beats a novel one), what would have to change, what's already there that the ticket may not know about, and where the matching tests live. Skip surfaces the ticket obviously doesn't touch — don't dispatch an embed explorer for a Terraform ticket.
+**Cap the fan-out at 3.** Decide which surfaces are plausible first, and skip the ones the ticket obviously doesn't touch; Tests don't count toward the number. **One or two plausible surfaces → ground them inline** on this thread (Grep / Glob / `git ls-files` / Read); dispatch nothing. **Three or more → fresh `Explore` agents in one message, never more than 3**, one per plausible group: **Backend + Schema**, **Admin UI + Embed**, **Infra + Ops** — Tests ride with the surface they test. Never dispatch a fourth; widen an agent's brief instead.
+
+Ask each pass for: where this behavior lives today, the **closest existing implementation to copy** (the house pattern beats a novel one), what would have to change, what's already there that the ticket may not know about, and where the matching tests live.
 
 **Also settle the config-vs-code question here** — it is the single most consequential fork on this codebase. Determine whether the ticket is:
 - **config-only** — expressible in an integration config (endpoints, mappings, transforms, hydration, jq) against capabilities the deployed backends **already** have → no backend deploy; or
@@ -84,8 +86,8 @@ Don't ask what you can read: resolve anything the code already answers via step 
 
 **Record every answer.** Resolved clarifications go into the plan's *Resolved clarifications* section (step 4) and land on the card in step 6 — so the ticket, not this transcript, is the source of truth.
 
-### 4. Author the plan
-Write the plan yourself on Opus (core role — `_shared/model-orchestration.md`). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`, **`model: opus`**; note the built-in `Plan` agent pins no effort, so it inherits the session default — for a hard design call prefer **`sl-core-worker`**, which pins opus @ high) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
+### 4. Author the plan — inline, on this thread
+Write the plan yourself; do not dispatch a planning agent — it would re-read everything you just grounded and hand back a plan you then have to re-own. Every step names a real `file:line` from the step-2 grounding.
 
 Write it to a stable, non-repo path so nothing lands in the repo's history and downstream skills can read it:
 ```
@@ -145,7 +147,7 @@ ${SL_REAL_BASE:-$SL_BASE_PATH}/.sl-issue/REQUIREMENTS-<n>.md
 - <explicitly not doing, so nobody assumes it>
 
 ### Plan review
-<Verdict from step 5: the panel's blockers folded in, plus any concern consciously accepted with a one-line reason. Name which models reviewed.>
+<Verdict from step 5 (`_shared/review-gate.md`): the confirmed BLOCKERs folded in, and the CONCERN ledger — every CONCERN, raised or demoted, with a one-line disposition (addressed, or accepted and why). Name which models reviewed.>
 
 ---
 > **For a future `/sl-issue` (or any agent picking this up):** this is the **plan of record** for
@@ -163,18 +165,12 @@ ${SL_REAL_BASE:-$SL_BASE_PATH}/.sl-issue/REQUIREMENTS-<n>.md
 - **No `.github/workflows`.** "CI green" means `./gradlew check` run locally and recorded on the PR — don't plan a CI job.
 
 ### 5. Plan-review gate  ← before it lands on the card
-A plan nobody checked is worth less than no plan, because it gets trusted. Run the plan past fresh, **context-isolated** reviewers — they get the issue, the grounding, and the **plan**, never your reasoning for it. Scale the panel to blast radius (a one-line config tweak doesn't need three reviewers):
+A plan nobody checked is worth less than no plan, because it gets trusted. Run it through `_shared/review-gate.md` — the roster (1× `sl-depth-reviewer` + 1–2× `sl-panel-reviewer`, escalated on its triggers), adjudication, the one delta round and the hand-off to you all live there. This step owns only the lenses and where the verdict lands:
 
-(Panel roster + effort per `_shared/model-orchestration.md`.)
-- **1× `sl-depth-reviewer`** (`subagent_type: sl-depth-reviewer` — opus @ `effort: high` by definition; dispatch it by type, not as `general-purpose` + `model: opus`, which would inherit the session effort) — *will this plan actually satisfy every checklist row, and what breaks?*
-- **Adjudicate the union** — reconcile the panel yourself if this thread is Opus, otherwise dispatch **`subagent_type: sl-adjudicator`** (opus @ `effort: high`). A cheap-lens flag is a candidate, not a verdict; a plan rewritten around a false positive costs more than the panel saved.
-- **1–2× `sl-panel-reviewer`** (`subagent_type: sl-panel-reviewer` — sonnet @ `effort: medium` by definition; the cheap tier *and* the cheap effort are the point) — decorrelated breadth: edge cases, missed states, simpler alternative. Keep at least one non-Opus voice so a systematic Opus blind spot can't survive. (This is the repo's standing Opus + Sonnet spot-check convention, moved to plan time where it's cheapest to act on.)
+- **Lenses** — the `sl-depth-reviewer` asks *will this plan satisfy every checklist row, and what breaks?*; each `sl-panel-reviewer` takes one of: edge cases, missed states & a simpler alternative; integration-contract & live-data blast radius; or ops/deploy/migration ordering — the one the plan is most exposed to first.
+- **Verdict** — confirmed BLOCKERs are folded into the plan; the CONCERN ledger and the reviewing models go in the plan's `### Plan review` section.
 
-Give each a distinct lens where you can — correctness/traceability · integration-contract & live-data blast radius · ops/deploy/migration ordering.
-
-Then **adjudicate on Opus** — never flat-vote the panel (Sonnet nominates, Opus decides which findings are real). Fold the real blockers into the plan; note consciously-accepted concerns with a one-line reason in the `### Plan review` section. If the approach changed materially, re-review.
-
-**Escalate the panel** when the plan touches: a Flyway migration, already-delivered S3 data (remap/purge/redaction), a published contract or standard schema, credentials/PII, or IAM. Those are the changes that are expensive to unwind.
+> **Review gate:** roster → dispatch → adjudicate → one delta round → ask, per `_shared/review-gate.md`.
 
 ### 6. Persist it on the card  ← the deliverable  (skipped entirely on `--dry-run`)
 Print the finished plan to the terminal first, then confirm the write with **one** `AskUserQuestion` — this is a human's ticket, so nothing lands unconfirmed:
