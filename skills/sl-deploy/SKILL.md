@@ -6,7 +6,7 @@ effort: medium
 
 # sl-deploy — deploy IntegrationService to QA or PROD
 
-> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`. **Always `cd "$SL_BASE_PATH/IntegrationService"` first.** Unlike `sl-issue`, deploys run from the **real checkout, never a worktree** — the image tag is a commit SHA that must reproduce what's deployed.
+> **Repo paths use `$SL_BASE_PATH`** — resolve it per `_shared/base-path.md`, **including its `sl-deploy` exception**: deploys run from the **real checkout, never a worktree** — the image tag is a commit SHA that must reproduce what's deployed. **Always `cd "$SL_BASE_PATH/IntegrationService"` first.**
 
 This skill orchestrates the repo's own deploy scripts — it does not reimplement them. All AWS work uses **`AWS_PROFILE=searchlight`** (account 911229172008). **Region split is intentional: QA = us-west-2, PROD = us-east-1.** The scripts resolve region themselves (`export_resource_region`); your own verification `aws` calls must pass `--region` explicitly.
 

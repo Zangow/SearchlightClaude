@@ -13,7 +13,8 @@ Skills point here with one line instead of restating it:
 ## Resolve it first
 
 1. **Already set? Use it as-is.** Never re-derive a value that is already set — in worktree mode it
-   deliberately points somewhere else (below).
+   deliberately points somewhere else (below). **Exception — `sl-deploy`:** deploys never run from a
+   worktree, so it resolves the real base: `export SL_BASE_PATH="${SL_REAL_BASE:-$SL_BASE_PATH}"`.
 2. **Unset → the default:** `export SL_BASE_PATH="${SL_BASE_PATH:-/Users/danieljohnston/git/Searchlight}"`.
 3. **Verify:** `test -d "$SL_BASE_PATH/IntegrationService"`. A miss means the value is wrong — stop
    and say so (a subagent returns it to its caller); don't guess another path.

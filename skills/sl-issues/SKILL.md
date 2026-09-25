@@ -28,7 +28,7 @@ So a takeaway is never filed behind your back. The driver **proposes** it at 4c;
 
 **Default: propose nothing.** An `sl-issue` run is supposed to *finish* its card, not spawn the next three. Per `_shared/finding-disposition.md`, the child run has already fixed everything Critical/High in its own diff and dropped everything Medium/Low — so **most runs should have nothing to file.** If a batch is producing a card per item, that is the bug, not the feature. (#248 → #268 → fifteen open follow-ups is what this rule exists to prevent.)
 
-> **Card severity:** every proposed/filed card carries `Severity:` + `Why this severity:` per `_shared/card-severity.md`. A takeaway is admitted **only** at Critical/High **and** with the `finding-disposition.md` exception it clears (not that card's code / needs a human decision or ops action / blocked). Missing any of the three → drop it; don't infer. Dropped means *gone* — not a card, not a queue line, not carried into the next prompt.
+> **Card severity:** every proposed/filed card carries `Severity:` + `Why this severity:` per `_shared/card-severity.md`. A takeaway is admitted **only** at Critical/High **and** with the `finding-disposition.md` exception it clears (not that card's code / needs a human decision or ops action / blocked). Missing any of the three → drop it; don't infer. Anything vague ("we should look into X", "consider extracting Y", "add more tests") is dropped too. Dropped means *gone* — not a card, not a queue line, not carried into the next prompt.
 
 **Before filing, check it against the cards this batch has already filed.** If it is the same substance as an existing one, comment on that card instead — two runs noticing the same missing index must not produce two cards.
 

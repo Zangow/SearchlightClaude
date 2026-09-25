@@ -19,12 +19,13 @@ Judge by **consequence if left as-is**, not by how interesting it is. Same ladde
 | Severity | Meaning |
 |----------|---------|
 | **Critical** | Data loss/corruption (incl. already-delivered S3 data), security or credential/PII exposure, breaks `main` or a deploy, a PROD outage or customer-visible delivery failure, or a card's own acceptance criteria are untrue. |
-| **High** | A real defect a customer or operator hits on a normal path — wrong or missing records, a crash, a silently-swallowed failure, an alarm that stays dark — or a fix a customer is waiting on. |
+| **High** | A real defect a customer or operator hits on a normal path — wrong or missing records, a crash, a silently-swallowed failure, an alarm that stays dark. |
 | **Medium** | Real but off the normal path, degraded rather than broken, a workaround exists, or the cost of leaving it is bounded. |
 | **Low** | Style, naming, hygiene, hypotheticals, "we could also…", nice-to-haves with no measured impact. |
 
 **When torn between two levels, pick the lower.** Escalating a maybe to justify a card is the
-failure mode this rule exists to catch.
+failure mode this rule exists to catch. For a self-review finding, `finding-disposition.md`'s
+"ambiguous is Medium" applies first — a finding torn between High and Medium never becomes a card.
 
 ## The required block — in the card body AND in the terminal proposal
 
