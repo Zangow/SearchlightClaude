@@ -37,13 +37,13 @@ Skill(skill: "code-review", args: "<effort> --fix in $SL_BASE_PATH/IntegrationSe
 
 > ⚠️ **It forks to the background.** The Skill call returns immediately with an agent name; the findings arrive later as a task notification. **Wait for that notification before step 2**, in bounded foreground slices per `_shared/waiting.md` — proceeding as if it ran inline means `./gradlew check` and `sl-verify` test a tree that's still being rewritten underneath them. If no notification has arrived after ~15 minutes, or the task reports an error, treat it as a **failed launch** and take the fallback ladder below — don't wait indefinitely and don't proceed as though it passed.
 
-**Commit what it fixed before step 2.** `--fix` writes to the working tree, but `sl-verify`'s runner reads `git diff origin/main...HEAD` — so uncommitted review fixes are invisible to the verifier. Commit them (`review: apply code-review findings`) once the notification lands and `./gradlew check` is green.
+**Commit what it fixed before step 2.** `--fix` writes to the working tree, but `sl-verify`'s runner reads `git diff origin/main...HEAD` — so uncommitted review fixes are invisible to the verifier. Commit them (`review: apply code-review findings`) once the notification lands and `./gradlew check` is green. Green here means what `_shared/testing-policy.md` §3 says: `docker info` first (Docker down is BLOCKED, not FAIL), no `-q`, and `_shared/gradle-test-count.sh` counts quoted, never a bare `BUILD SUCCESSFUL`.
 
 Two things this pass does *not* do, owned elsewhere:
 - **"Does it meet the requirement?"** → `sl-verify`'s requirements pass (step 2). Standalone runs: check it yourself.
 - **"Is there acceptance coverage?"** → the acceptance-coverage check in step 2.
 
-**Disposition: `_shared/finding-disposition.md`.** Critical and High get fixed **now**. Medium and Low get **dropped** — if `--fix` already applied one and it's clean, leave it, but don't chase it. Run `./gradlew check` **once** after the fixes and move on: **do not re-review your own fixes.** A second pass over a diff the first just rewrote reliably finds new Medium/Low to rewrite again.
+**Disposition: `_shared/finding-disposition.md`.** Critical and High get fixed **now**. Medium and Low get **dropped** — if `--fix` already applied one and it's clean, leave it, but don't chase it. Run the full `./gradlew check` **once** after the fixes (a `--tests` run doesn't count) and move on: **do not re-review your own fixes.** A second pass over a diff the first just rewrote reliably finds new Medium/Low to rewrite again.
 
 **This is the pipeline's only scheduled correctness review.** The step-3.5 plugin pass was removed because it re-reviewed a diff this step had already swept. The one exception is the fallback ladder below. Once the PR is open, the human who approves the merge in `sl-issues` is the second reader.
 
@@ -63,11 +63,11 @@ Invoke **`sl-verify`**. It runs the mechanical checks (build, tests, lint) inlin
 
 **Do not proceed to PR until verification is green.** Green means no row reads `FAIL` or `BLOCKED`. A row spelled **`PASS (dropped: <sev>)`** *is* green — it is a Medium/Low observation the verifier deliberately didn't repair per `_shared/finding-disposition.md`; carry its Caveats text into the PR body verbatim and proceed. A row spelled `PASS (handoff)` is also green. The loop is capped at **1 code-fix round** (`sl-verify` step 3); environment BLOCKED re-dispatches and inline mechanical re-runs don't count against it. At the cap, stop — don't keep grinding. Report `SHIP-FAILED:` with the verifier findings verbatim, what the round tried, and the branch + worktree left in place. Round 2 in *this* context costs more than round 1 and is the least likely to work: a failed repair round usually means the **diagnosis** is wrong, and the same context repeats the same wrong model of the bug. If it's genuinely close, hand it to a fresh agent (`sl-verify` step 3) rather than grinding here.
 
-**Acceptance-coverage check — before the PR, not after the deploy.** The standing policy (`sl-issue` step 3) is acceptance coverage by default for every feature and bug fix, with unit/integration retained underneath it. So before opening the PR, confirm one of these is true and say which:
-- the change extends or adds an **AT** — `acceptance-tests/` for API/delivery behavior, `e2e/specs/*.spec.ts` for admin-UI/embed behavior — **and it has actually been run** (`scripts/run-acceptance.sh local`, or `scripts/run-e2e.sh qa`); or
-- there's a **stated reason** an AT doesn't fit (pure helper, unreachable branch, not observable in a deployed env — e.g. a Micrometer counter, which has no exporter).
+**Acceptance-coverage check — before the PR, not after the deploy.** Per `_shared/testing-policy.md` §1, confirm one of these is true and say which in the PR body:
+- the change extends or adds an **AT** and it has **actually been run**, with its count read; or
+- the reason an AT doesn't fit is stated.
 
-Neither one true → that's a finding to fix now, not a follow-up. `:acceptance-tests:acceptanceTest` is **outside `./gradlew check`**, so a green build says nothing about whether a new AT even compiles against a live target — an unrun AT is not evidence. This is what makes `sl-deploy`'s QA gate meaningful: it can only catch a regression the pack actually covers.
+Neither one true → that's a finding to fix now, not a follow-up. This is what makes `sl-deploy`'s QA gate meaningful: it can only catch a regression the pack actually covers.
 
 ### 3. Open the PR
 **PR-review variant:** if step 1 fell back to rung 2, open the PR normally, run `gh pr ready <PR#>`, then `Skill(skill: "code-review", args: "<effort> <full PR URL>")`, apply any Critical/High yourself, re-run `./gradlew check`, and push — and say so in the PR body and the ship report. Otherwise open the PR normally.

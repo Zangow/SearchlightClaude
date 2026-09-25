@@ -138,11 +138,7 @@ ${SL_REAL_BASE:-$SL_BASE_PATH}/.sl-issue/REQUIREMENTS-<n>.md
 <The order of operations after merge: deploy backend (QA first, then PROD) → apply/republish live integration configs → verify. Name each config slug + env. Remember QA = us-west-2, PROD = us-east-1, and that config PATCH is RFC 7386 merge (nested objects merge; explicit null clears). Or "none — merges and rides the next deploy".>
 
 ### Tests
-<Each testable requirement → its named test, derived from the requirement rather than the code. R3 → test('biz-reply events are filtered before delivery').
-
-Name the LEVEL for each: **unit** for pure logic, **integration** (Testcontainers: Postgres + LocalStack, needs Docker) for anything crossing persistence/S3/Secrets, and **acceptance** for anything a customer or the admin API observes end-to-end — `acceptance-tests/` for API/delivery behavior, `e2e/specs/*.spec.ts` (Playwright) for admin-UI/embed flows.
-
-**Acceptance coverage is the default, not the exception.** Every new feature and every bug fix plans an AT of its observable outcome — that pack is what `sl-deploy` runs against QA and what **gates PROD** on a QA→PROD run, so a behavior with no AT is a behavior nobody checks after a deploy. Drop to unit/integration only where an AT genuinely doesn't fit (pure helper, unreachable branch, or something not observable in a deployed env at all — e.g. a Micrometer counter, which has no exporter) and **state that reason in the plan**; keep unit/integration coverage even when an AT is added. Extend the spec that already covers the flow rather than adding one; say which and why. Note that `./gradlew check` is the PR gate (there is no CI pipeline) but `:acceptance-tests:acceptanceTest` is deliberately **outside** it — so the plan must say how the new AT gets run (`scripts/run-acceptance.sh local` against a booted stack, then QA post-deploy). Plans that skip AT coverage without a reason get sent back at the plan-review gate.>
+<Each testable requirement → its named test and its level (unit / integration / AT, and which spec), per `_shared/testing-policy.md`. R3 → test('biz-reply events are filtered before delivery'). Where an AT doesn't fit, state the reason here. Say how each new AT gets run, since `./gradlew check` doesn't run it. The plan-review gate sends back a plan that skips AT coverage without a reason.>
 
 ### Risks & unknowns
 - <what could go wrong, blast radius, and the mitigation>

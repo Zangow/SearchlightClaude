@@ -10,6 +10,7 @@ instead of restating it, so the rule changes in one place.
 | [`base-path.md`](./base-path.md) | resolve `$SL_BASE_PATH` / `$SL_REAL_BASE`, worktree repoint, fresh-shell exports | every sl-* skill that touches a checkout |
 | [`waiting.md`](./waiting.md) | never end a turn on a pending wait; bounded waits; one Gradle run per checkout | `sl-ship`, `sl-deploy`, `sl-core-worker`, `sl-verify-runner` |
 | [`card-severity.md`](./card-severity.md) | every proposed/filed card carries `Severity:` + `Why this severity:` | `sl-issues` takeaways, `sl-subtask` children |
+| [`testing-policy.md`](./testing-policy.md) | AT by default, unit/integration always; only a full `./gradlew check` with a quoted test count backs green; Docker down = BLOCKED | `sl-issue`, `sl-plan`, `sl-subtask`, `sl-verify`, `sl-ship`, `sl-verify-runner` |
 | [`finding-disposition.md`](./finding-disposition.md) | fix Critical/High now, drop Medium/Low (below) | `sl-ship`, `sl-issue`, `sl-issues`, `sl-verify` |
 | [`model-orchestration.md`](./model-orchestration.md) | which model runs which role (below) | every skill that dispatches subagents |
 
@@ -48,3 +49,6 @@ Reference it from a skill like:
 
 - `sl-worktree.sh` — worktree lifecycle for `sl-issue` / `sl-issues`.
 - `sl-move-issue-column.sh` — move an issue's card between board columns.
+- `gradle-test-count.sh <IntegrationService-dir> [suite …]` — per-suite tests/skipped/failures/errors from the JUnit XML; the count `testing-policy.md` §3 requires (Gradle's console prints none here).
+- `gradle-busy.sh <repo-dir> [--wait 1..540]` — is another Gradle run live over this checkout? exit 0 clear · 4 busy · 2 usage. Never kills anything (`waiting.md` rule D).
+- `test-gradle-scripts.sh` — hermetic tests for the two above (`bash skills/_shared/test-gradle-scripts.sh`).
