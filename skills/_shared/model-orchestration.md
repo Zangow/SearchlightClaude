@@ -105,10 +105,10 @@ it is asked. Four rules follow for every skill and agent in this repo:
   verifier (`sl-verify` and its runner) and a fresh adjudication pass. Those are dispatches, not
   adjectives.
 - **(c) Cap subagent spawns explicitly.** Opus 5.x fans out as wide as a task seems to invite, so
-  every dispatched worker carries a number, never "as many as needed". The cap counts everything a
-  spawned agent spawns in turn; `sl-issues` step 4b puts it verbatim in the brief it hands each
-  item. A skill that wants a bigger panel runs it in batches — it never drops a panel member,
-  verifier or gate to fit.
+  every dispatched worker carries a number, never "as many as needed". The cap lives in
+  `agents/sl-core-worker.md` (counting everything a spawned agent spawns in turn); `sl-issues`
+  step 4b repeats it in the brief it hands each item. A skill that wants a bigger panel runs it in
+  batches — it never drops a panel member, verifier or gate to fit.
 - **(d) Pin effort; don't ask for it.** Effort is set in frontmatter (agent or skill), the session
   default, or a Workflow script — never in prose. A sentence asking a dispatched agent to "think
   hard" or "go quickly" is a no-op; see "Effort" below.
