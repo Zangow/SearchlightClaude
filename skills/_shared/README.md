@@ -17,14 +17,20 @@ instead of restating it, so the rule changes in one place.
 ## `model-orchestration.md` — which Claude model runs which role
 
 **Convention:** any skill that dispatches subagents or runs an LLM-judgment pass (plan / author /
-review / verify) follows the model-assignment policy in
-[`model-orchestration.md`](./model-orchestration.md) instead of restating it.
+review / verify) follows [`model-orchestration.md`](./model-orchestration.md) instead of restating
+it. In short: **core roles (plan / author / adjudicate) run on Opus**; **review runs as a
+fresh-thread panel mixing Opus + Sonnet**, where every reviewer *nominates* findings and a single
+Opus pass *adjudicates* them — inline on the main thread when it is Opus, else `sl-adjudicator`;
+**verification** is execution-grounded and defaults to one Sonnet `sl-verify-runner`, escalated to
+Opus for hard gates. The rules for writing a skill — state each rule once, no exhortations, cap
+subagent spawns, pin effort rather than asking for it — are its "Writing skills for Opus 5.x and
+later" section. When the roster changes, edit that file only.
 
-Reference it from a skill like:
-
-```
-> **Model assignment:** follows `_shared/model-orchestration.md`.
-```
+**Don't restate it per skill.** No skill carries its own model paragraph or a pointer banner for
+this file: a skill names the agent it dispatches in its own step text (`sl-core-worker`,
+`sl-depth-reviewer`, `sl-panel-reviewer`, `sl-verify-runner`, `sl-adjudicator`) and leaves the why to
+`model-orchestration.md`. Which skills sit outside the policy (the mechanical ones, and `sl-deploy`
+on the session model) is listed once, in its "Mechanical skills" note.
 
 ## `finding-disposition.md` — fix it now, or drop it
 

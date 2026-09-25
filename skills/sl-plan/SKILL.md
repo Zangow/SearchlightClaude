@@ -16,8 +16,6 @@ That persistence is the point. Today an `/sl-issue` run re-derives the plan in i
 
 **Autonomy boundary — inverted vs `sl-issue`.** `sl-issue` treats a clarifying question as an exception ("only ambiguities that change *what* gets built"). Here, **clarification is the main event**: this is explicitly the place where you and Claude hash out the ambiguities before any work kicks off. Ask freely (batched, concrete), and record every answer on the card. The one thing that stays gated at the end is the *write* — you confirm before anything lands on a human's ticket.
 
-> **Model policy.** Planning and authoring are **core roles → keep them on the strongest available model** (per `IntegrationService/CLAUDE.md`: implement on **Fable**, falling back to **Opus**). Codebase grounding fans out to fresh `Explore` agents. The plan-review gate is a **review role** → fresh, context-isolated subagents mixing **Opus + Sonnet** (the repo's standing "spot-checked by both an Opus and a Sonnet subagent" convention, applied to the *plan* instead of the diff), **adjudicated on Opus** — the cheap/diverse voices nominate, Opus decides what's real. Never flat-vote a mixed panel.
-
 ## Inputs
 
 ```
@@ -87,7 +85,7 @@ Don't ask what you can read: resolve anything the code already answers via step 
 **Record every answer.** Resolved clarifications go into the plan's *Resolved clarifications* section (step 4) and land on the card in step 6 — so the ticket, not this transcript, is the source of truth.
 
 ### 4. Author the plan
-Write the plan yourself on the strongest available model (core role). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`, **`model: opus`**; note the built-in `Plan` agent pins no effort, so it inherits the session default — for a hard design call prefer **`sl-core-worker`**, which pins opus @ high) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
+Write the plan yourself on Opus (core role — `_shared/model-orchestration.md`). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`, **`model: opus`**; note the built-in `Plan` agent pins no effort, so it inherits the session default — for a hard design call prefer **`sl-core-worker`**, which pins opus @ high) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
 
 Write it to a stable, non-repo path so nothing lands in the repo's history and downstream skills can read it:
 ```

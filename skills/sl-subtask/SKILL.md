@@ -14,8 +14,6 @@ The third front door alongside **`sl-plan`** (issue → reviewed plan, persisted
 
 **It writes no feature code, cuts no branch, boots no env, and opens no PR.** Its only writes are the new subtask issues, their sub-issue links, their board cards, the parent's `epic` label, and one comment on the parent — all behind a single checkbox gate.
 
-> **Model policy.** Cutting the work and ordering it is a **core role → keep it on the strongest available model** (per `IntegrationService/CLAUDE.md`: implement on **Fable**, falling back to **Opus**). A bad seam is expensive — it surfaces three cards later as a card that can't be started. Codebase grounding fans out to fresh `Explore` agents; the breakdown-review gate is a **review role** → fresh, context-isolated subagents mixing **Opus + Sonnet** (the repo's standing "spot-checked by both an Opus and a Sonnet subagent" convention, applied to the *cut* instead of the diff), **adjudicated on Opus**. Never flat-vote a mixed panel.
-
 ## Inputs
 
 ```
@@ -86,7 +84,7 @@ Ask each for what `sl-plan` asks (where this behavior lives today, the **closest
 Also check whether part of the card is **already done** by a recent commit or PR — this board has a lot of shipped-but-not-closed work. Work that's already landed must not become a subtask; if most of it is done, stop and say so.
 
 ### 3. Cut the work — the rules that make a card PR-sized
-Decompose on the strongest available model. Every rule below is a constraint on the cut, not a preference:
+Decompose on Opus (core role — `_shared/model-orchestration.md`). Every rule below is a constraint on the cut, not a preference:
 
 - **One surface per subtask.** `Backend · Admin UI · Embed · Data · Infra · Ops · Config · Skill` — a card that spans two is a cut error. This is one repo, so the justification isn't the repo boundary (as it is on Driftwise): it's that each surface has its own deploy footprint, its own reviewer, and its own verification path in `sl-verify`.
 - **One verification surface per subtask.** If proving the card works needs both an `acceptance-tests/` HTTP+S3 spec **and** a Playwright `e2e/` browser flow, it's two cards.
