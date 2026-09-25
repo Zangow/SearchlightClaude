@@ -2,7 +2,7 @@
 name: sl-adjudicator
 description: "The non-Opus fallback for the adjudication pass over verdicts and findings nominated by a mixed panel — dispatched only when the thread holding the panel's returns is not running Opus, or cannot tell that it is (inline on Opus is the default, per _shared/model-orchestration.md). Decides which candidates are real before they fail a change, reshape a plan, or trigger a repair loop. Used by sl-verify (reconciling panelists), sl-plan and sl-subtask (ruling on the review panel's raised issues). Read-only; it rules, it never fixes."
 tools: Read, Grep, Glob, Bash
-effort: high
+effort: medium
 model: opus
 ---
 
