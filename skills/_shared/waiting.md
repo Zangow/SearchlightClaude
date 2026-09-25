@@ -63,6 +63,7 @@ every result is in — within the caller's concurrency cap.
 **D — One Gradle run per checkout.** Two Gradle runs in the same IntegrationService checkout fake a
 false failure (~60 classes of "Could not write XML test results", plus unrelated
 `PartnerS3IngestionE2EIT` failures). Before `./gradlew check`/`test`, make sure no other agent is
-running Gradle in that tree (`pgrep -fl 'gradlew|GradleWrapperMain'` and check the cwd); if one is,
-wait for it per Rule B. **Never kill a build you cannot prove you started.** If you see that
-signature anyway, re-run on a quiet tree before calling the change broken.
+running Gradle in that tree (`_shared/gradle-busy.sh <IntegrationService-dir>`, exit 4 = busy; add
+`--wait <s>` to block up to 540 s); if one is, wait for it per Rule B. **Never kill a build you
+cannot prove you started.** If you see that signature anyway, re-run on a quiet tree before calling
+the change broken.

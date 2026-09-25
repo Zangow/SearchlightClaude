@@ -26,10 +26,9 @@ You will be handed:
 - **The mechanical checks are already done.** Build, tests, and lint ran inline in the main thread
   before you were dispatched; don't re-run the suite to pad your evidence. Your lane is runtime
   behaviour and requirements.
-- **Test level is part of the verdict, per the skill's standing policy.** For each checklist row,
-  note which layers back it. A row with no test at any level is ❌. An acceptance test that has
-  **never actually run** against a running target is **BLOCKED**, not PASS — `:acceptance-tests:acceptanceTest`
-  sits outside `./gradlew check`, so "it exists" and "it passed" are different claims.
+- **Test level is part of the verdict**, per `.claude/skills/_shared/testing-policy.md` and the skill's
+  step 2b. A row with no test at any level is ❌. An AT that has **never actually run** against a
+  running target is **BLOCKED**, not PASS.
 - **Never fix the code.** Report findings. A fix belongs to the author's context, not yours.
 - **Never dispatch further subagents.** You are a leaf.
 - **Never end your turn on a pending wait** — poll a backgrounded test run or AT pack to its result

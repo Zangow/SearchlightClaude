@@ -101,7 +101,7 @@ Decompose on the strongest available model. Every rule below is a constraint on 
   - A large **data backfill** is the one legitimate reason to split a migration onto its own card.
 - **IAM ships with the S3/AWS change that needs it — never as a later card.** Any new bucket, prefix, or action (`PutObject`, `DeleteObjectVersion`, `ListBucketVersions` …) needs the Terraform task-role policy widened in the *same* card, or it works locally and AccessDenies in the deployed env only. Splitting here manufactures a broken intermediate state.
 - **Main stays green after every merge.** Merging cards 1..k in order must leave `./gradlew check` passing and the service working for every k. Dark-ship or config-gate a half-built surface rather than landing a broken one.
-- **Tests ship with their card.** Never a trailing "add tests" subtask. Each card carries its own coverage per `sl-issue`'s policy: **acceptance test by default** (preferably *extending* the spec that already covers the flow — name it), plus the unit/integration layer. A card whose only observable outcome is a **Micrometer counter** is a bad card — there's no exporter, so it can't be verified in QA/PROD; re-cut it around a log line or an API-observable signal, or state the caveat on the card.
+- **Tests ship with their card.** Never a trailing "add tests" subtask. Each card carries its own coverage per `_shared/testing-policy.md`, naming the spec it extends. A card whose only observable outcome is a **Micrometer counter** is a bad card: there's no exporter, so it can't be verified in QA/PROD. Re-cut it around a log line or an API-observable signal, or state the caveat on the card.
 - **Coverage is exact.** The union of the subtasks must deliver 100% of the parent's scope, and no two cards may do the same work. Every requirement of the parent (or every row of an adopted `sl-plan` checklist) maps to **exactly one** subtask; anything deliberately dropped goes in the parent comment's *Out of scope*, not into silence.
 - **Never split for the sake of the count.** Two files that must change together are one card. A card that reads as "and also" is two.
 - **Canonical-schema changes need sign-off, not a subtask.** If any piece would change a published standard schema (the `#5`/`#56`/`#30` class), it does not become a card that someone can just start — flag it in the parent comment as needing owner + ingestion-owner sign-off first, and mark that child `**Blocked on sign-off**` at the top of its body.
@@ -165,11 +165,8 @@ context to work it cold.>
 | R1 | <what must be true when done — observable, not an implementation step> | backend/ui/embed/infra/config |
 
 ## Tests
-<Named test per testable requirement, at the level `sl-issue`'s policy calls for: acceptance test
-by default — say whether you're extending an existing spec and which (`acceptance-tests/` for
-API/delivery, `e2e/specs/*.spec.ts` for admin-UI/embed flows) — plus the unit/integration layer.
-Note that `:acceptance-tests:acceptanceTest` sits outside `./gradlew check`, so say how the new AT
-actually gets run (`scripts/run-acceptance.sh local` against a booted stack).>
+<Named test per testable requirement, at the level `_shared/testing-policy.md` calls for. Name the spec
+being extended, and say how a new AT actually gets run.>
 
 ## Done when
 - [ ] <the observable outcome a human can check>
