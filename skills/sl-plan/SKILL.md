@@ -85,7 +85,7 @@ Don't ask what you can read: resolve anything the code already answers via step 
 **Record every answer.** Resolved clarifications go into the plan's *Resolved clarifications* section (step 4) and land on the card in step 6 — so the ticket, not this transcript, is the source of truth.
 
 ### 4. Author the plan
-Write the plan yourself on the strongest available model (core role). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`, **`model: opus`**; note the built-in `Plan` agent pins no effort, so it inherits the session default — for a hard design call prefer **`sl-core-worker`**, which pins opus @ high) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
+Write the plan yourself on Opus (core role — `_shared/model-orchestration.md`). For non-trivial work, dispatch the **`Plan`** agent (`subagent_type: Plan`, **`model: opus`**; note the built-in `Plan` agent pins no effort, so it inherits the session default — for a hard design call prefer **`sl-core-worker`**, which pins opus @ high) with the issue + the step-2 grounding + the resolved clarifications, then own and edit the result — you are the author, not a pass-through.
 
 Write it to a stable, non-repo path so nothing lands in the repo's history and downstream skills can read it:
 ```

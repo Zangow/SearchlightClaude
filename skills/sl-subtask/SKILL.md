@@ -84,7 +84,7 @@ Ask each for what `sl-plan` asks (where this behavior lives today, the **closest
 Also check whether part of the card is **already done** by a recent commit or PR — this board has a lot of shipped-but-not-closed work. Work that's already landed must not become a subtask; if most of it is done, stop and say so.
 
 ### 3. Cut the work — the rules that make a card PR-sized
-Decompose on the strongest available model. Every rule below is a constraint on the cut, not a preference:
+Decompose on Opus (core role — `_shared/model-orchestration.md`). Every rule below is a constraint on the cut, not a preference:
 
 - **One surface per subtask.** `Backend · Admin UI · Embed · Data · Infra · Ops · Config · Skill` — a card that spans two is a cut error. This is one repo, so the justification isn't the repo boundary (as it is on Driftwise): it's that each surface has its own deploy footprint, its own reviewer, and its own verification path in `sl-verify`.
 - **One verification surface per subtask.** If proving the card works needs both an `acceptance-tests/` HTTP+S3 spec **and** a Playwright `e2e/` browser flow, it's two cards.

@@ -77,7 +77,9 @@ dominates.
 - **Default:** one fresh `sl-verify-runner` on its definition's defaults.
 - **Escalate the model on a trigger.** When the diff hits `sl-verify`'s trigger list, dispatch the
   primary with **`model: opus`** — Opus depth at the runner's medium effort. An unmet requirements
-  row is a hard gate, so the requirements-traceability pass runs on `model: opus` too.
+  row is a hard gate, so the requirements-traceability pass runs on `model: opus` too — and since
+  the primary runs that pass in the same dispatch, an issue-driven verify dispatches its primary on
+  `model: opus` even when no trigger is hit.
 - **Second panelist — opt-in.** Add one more `sl-verify-runner` (definition defaults) with a
   *different lens* (edge-cases / error states, vs. the primary's happy path + requirement) **only
   when** the caller passed `--thorough` **or** the change touches one of the trigger list's
