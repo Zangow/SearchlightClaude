@@ -35,7 +35,7 @@ Skill(skill: "code-review", args: "<effort> --fix in $SL_BASE_PATH/IntegrationSe
 
 **`--thorough`** is an input to `sl-ship` (and `sl-issue` passes it through): it raises this step to `high` and enables `sl-verify`'s second panelist. Nothing else reads it.
 
-> ⚠️ **It forks to the background.** The Skill call returns immediately with an agent name; the findings arrive later as a task notification. **Wait for that notification before step 2** — proceeding as if it ran inline means `./gradlew check` and `sl-verify` test a tree that's still being rewritten underneath them. If no notification has arrived after ~15 minutes, or the task reports an error, treat it as a **failed launch** and take the fallback ladder below — don't wait indefinitely and don't proceed as though it passed.
+> ⚠️ **It forks to the background.** The Skill call returns immediately with an agent name; the findings arrive later as a task notification. **Wait for that notification before step 2**, in bounded foreground slices per `_shared/waiting.md` — proceeding as if it ran inline means `./gradlew check` and `sl-verify` test a tree that's still being rewritten underneath them. If no notification has arrived after ~15 minutes, or the task reports an error, treat it as a **failed launch** and take the fallback ladder below — don't wait indefinitely and don't proceed as though it passed.
 
 **Commit what it fixed before step 2.** `--fix` writes to the working tree, but `sl-verify`'s runner reads `git diff origin/main...HEAD` — so uncommitted review fixes are invisible to the verifier. Commit them (`review: apply code-review findings`) once the notification lands and `./gradlew check` is green.
 
