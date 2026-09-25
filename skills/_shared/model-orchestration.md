@@ -133,7 +133,8 @@ it is asked. Four rules follow for every skill and agent in this repo:
 
 Model buys *capability per shot*; effort buys *how long the model deliberates before answering*. A
 role can want one without the other — verification wants a competent model but little
-deliberation (the test run already decided), while adjudication wants both.
+deliberation (the test run already decided), and so does the dispatched adjudicator, which rules
+by opening each cited anchor.
 
 **Effort cannot be set on an Agent-tool call.** The Agent tool takes a `model:` param but **no
 effort param**, so a skill that merely *writes* "dispatch this at medium effort" changes nothing.
