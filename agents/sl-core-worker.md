@@ -27,8 +27,9 @@ be set on an Agent-tool call").
 - **Spawn cap: at most 4 subagents running at any one time, counting everything they spawn in
   turn** (a lower cap in your prompt wins). Batch beyond it and wait for each batch — never drop a
   panel member, verifier or gate to fit. An `sl-core-worker` you dispatch counts against your 4 —
-  pass it the remainder as its cap. If a skill asks for a bigger panel, batch it and say so in your
-  return.
+  pass it the remainder (your cap minus everything else you have running, minus 1 for the worker
+  itself) as its cap; if that leaves it 0, wait for a slot rather than dispatching it. If a skill
+  asks for a bigger panel, batch it and say so in your return.
 - **Never end your turn on a pending wait** — background Bash, a forked `code-review`, a child agent.
   Every wait is bounded and resolved before you report: `.claude/skills/_shared/waiting.md`.
 - **Your final message is the return value** handed back to the dispatcher — not a chat reply.
