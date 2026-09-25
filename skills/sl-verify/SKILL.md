@@ -41,18 +41,20 @@ git -C "$SL_BASE_PATH/IntegrationService" diff --stat main...HEAD
 Identify the surfaces the diff touches (service code, tests, config/infra, docs) and — since the repo's stack may evolve — detect the toolchain from the repo itself (build files, package manifests, CI workflows under `.github/workflows/`) rather than assuming one. Whatever CI runs is the minimum bar locally.
 
 ### 2a. Mechanical checks — inline, main thread
-Run these yourself, from a clean state, using the toolchain detected in step 1:
-- **Compile/build** — the project's real build command.
-- **Tests** — the full test suite, plus the tests that map to the change's requirements. New behavior with no test covering it is a finding, not a pass.
-- **Lint/static analysis** — whatever the repo's configured tooling is.
+> **Testing policy:** the evidence rules are `_shared/testing-policy.md` §3 — only a full `./gradlew check` backs green, never `-q`, and a quoted test count, never a bare `BUILD SUCCESSFUL`.
 
-Record the real command output as evidence. Any failure here loops back to the author (step 3) before the behavioral agent is dispatched — don't pay for a behavioral pass on code that doesn't build.
+Run these yourself from a clean state, in this order:
+1. **Preconditions.** `docker info >/dev/null 2>&1` — Docker down makes `Tests` **BLOCKED**, not FAIL. Start Docker and re-run; don't substitute `./gradlew test`. Then `"${SL_REAL_BASE:-$SL_BASE_PATH}/.claude/skills/_shared/gradle-busy.sh" "$SL_BASE_PATH/IntegrationService"`: exit 4 means another Gradle run is live in this checkout, so wait it out per `_shared/waiting.md` rule D.
+2. **Build + tests + lint — one full `./gradlew check`** in `$SL_BASE_PATH/IntegrationService` (`--console=plain`, no `-q`). It covers compile, `test`, `integrationTest`, `boundedHeapTest`, the script tests and `:acceptance-tests:test`. Run it through the rc wrapper in `_shared/waiting.md` rule B; a full `check` outlives a single foreground call. `check` does not build the front-ends: when the diff touches `ui/` or `ui-embed/`, also run that package's `npm run typecheck`, `lint`, `test` and `build`, and quote the test runner's count.
+3. **Read the count.** `"${SL_REAL_BASE:-$SL_BASE_PATH}/.claude/skills/_shared/gradle-test-count.sh" "$SL_BASE_PATH/IntegrationService"`. Quote its per-suite lines as the `Tests` evidence. Check that the tests mapped to this change's requirements appear among the executed tests, not the skipped ones. New behaviour with no test covering it is a finding, not a pass.
+
+Any failure here loops back to the author (step 3) before the behavioral agent is dispatched — don't pay for a behavioral pass on code that doesn't build.
 
 ### 2b. Behavioral + requirements pass — one fresh agent
 Launch the verifier as an **`sl-verify-runner`** agent (`subagent_type: sl-verify-runner`; override to `model: opus` for a contract / persistence / auth change, per the panel policy above). It must check:
 - **Runtime behavior** — actually exercise the change: run the service locally, hit the changed endpoints/flows with real requests, and observe responses, logs, and error paths. A change that only passes static checks is **not verified**.
 - **Requirements traceability (only when the change came from an issue):** if a requirements checklist exists at `${SL_REAL_BASE:-$SL_BASE_PATH}/.sl-issue/REQUIREMENTS-<n>.md` (produced by `sl-issue`), hand the checklist path and the issue URL to the same verifier. It maps each checklist row → real evidence (code, test, endpoint response, screenshot) and marks it ✅/❌ — any unmet row is a FAIL independent of whether the technical checks pass. If the change is issue-driven and no checklist file can be found, requirements verification is **BLOCKED** — never silently skipped.
-- **Test level, not just "a test exists".** The standing policy is acceptance coverage by default for any feature or bug fix (extending the spec that already covers the flow), unit/integration only where an AT genuinely doesn't fit *and* the reason is stated, and unit/integration retained even when an AT is added. For each row, note which layers back it (`AT: AdminLifecycleAcceptanceTest` + `unit: RegistrationServiceTest`). Flag — as a finding, not automatically a FAIL — any row with **no AT and no stated reason**, or an AT with **no unit/integration underneath**. A row with no test at any level is ❌ unmet. Because `:acceptance-tests:acceptanceTest` is **outside `./gradlew check`**, a new AT counts only if it was actually executed against a running target (`scripts/run-acceptance.sh local`, or `scripts/run-e2e.sh qa` for UI flows) — an AT that has never run is **BLOCKED**, not PASS.
+- **Test level, not just "a test exists"** (policy: `_shared/testing-policy.md` §1). For each row, note which layers back it (`AT: AdminLifecycleAcceptanceTest` + `unit: RegistrationServiceTest`). A row with **no AT and no stated reason**, or an AT with **no unit/integration underneath**, is a finding, not automatically a FAIL. A row with no test at any level is ❌ unmet. A new AT counts only once it has executed against a running target (`scripts/run-acceptance.sh local`, or `scripts/run-e2e.sh local|qa` for UI flows) and its count has been read. An AT that has never run is **BLOCKED**, not PASS.
 - **Screenshots/output capture** for anything user-visible, saved to the scratchpad and referenced in the summary.
 
 ### 3. One repair round, then report
@@ -88,7 +90,7 @@ Produce a consolidated verdict — PASS/FAIL/BLOCKED per check, what was tested 
 ```
 VERIFY SUMMARY — <branch>
 Build:        PASS/FAIL/BLOCKED — …            # append " (handoff)" to any row a handoff re-ran
-Tests:        PASS/FAIL/BLOCKED — <passed>/<total>
+Tests:        PASS/FAIL/BLOCKED — ./gradlew check: <gradle-test-count.sh lines: suite executed/tests, failures, errors> (never a bare BUILD SUCCESSFUL)
 Lint:         PASS/FAIL/n-a/PASS (dropped: <sev>) — …
 Runtime:      PASS/FAIL/BLOCKED/PASS (dropped: <sev>) — <what was exercised>
 Requirements: PASS/FAIL/BLOCKED/n-a — <met>/<total> (n-a if not issue-driven; never "dropped")
