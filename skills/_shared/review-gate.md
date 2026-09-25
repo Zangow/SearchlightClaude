@@ -6,6 +6,7 @@ The one procedure every plan-time review panel follows, stated once. It applies 
 |--------|------|
 | `sl-plan` step 5 | the plan, before it lands on the card |
 | `sl-subtask` step 6 | the breakdown, before any child is filed |
+| `sl-issue` step 3 | its own plan, before any code — contract-level changes only, and never over an adopted `sl-plan` plan |
 
 **The caller owns** the lens each reviewer gets (the question it asks), anything each reviewer is
 handed beyond the basics in step 1, and where the verdict is recorded. **This file owns** the roster
