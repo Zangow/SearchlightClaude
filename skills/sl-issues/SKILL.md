@@ -183,7 +183,7 @@ gh pr view <pr> --repo Zangow/IntegrationService \
 ```
 Report anything not cleanly mergeable (conflicts, failing checks) and **do not merge** it without an explicit override. Note that this repo has **no GitHub Actions workflows** — an empty `statusCheckRollup` is expected, not a red flag; the quality gate is the locally-run `./gradlew check` that `sl-ship` records on the PR.
 
-Offer with one `AskUserQuestion` (`multiSelect: true`): *Merge the PR* / *Remove the worktree* / *Close the issue + move the card to "Done"* / *Leave everything as is*.
+Offer with one `AskUserQuestion` (`multiSelect: true`): *Merge the PR* / *Remove the worktree* / *Close the issue* / *Leave everything as is*.
 
 - **Merge — IntegrationService uses merge commits** (its history is `Merge pull request #<pr> from Zangow/<branch>`, not squashes):
   ```bash
@@ -200,8 +200,8 @@ Offer with one `AskUserQuestion` (`multiSelect: true`): *Merge the PR* / *Remove
 - **Close the issue** only if explicitly chosen (the team's convention is to close manually on merge):
   ```bash
   gh issue close <n> --repo Zangow/IntegrationService
-  "${SL_REAL_BASE:-$SL_BASE_PATH}/.claude/skills/_shared/sl-move-issue-column.sh" Zangow/IntegrationService <n> "Done"
   ```
+  That close **is** the move to "Done" — never follow it with `sl-move-issue-column.sh … "Done"`. The Searchlight Integration Service board's built-in workflows move a closed issue's card to "Done" (*Item closed*) and close an issue whose card lands in "Done" (*Auto-close issue*), so closing and moving to "Done" are one action. The close is a REST call — no GraphQL cost. Conversely, never move a card to "Done" while meaning to leave the issue open; it will be closed.
 
 **Deploying is not part of this skill.** Merging lands the code on `main`; getting it into QA/PROD is `/sl-deploy`, and republishing affected integration configs is a separate ops step. Say which items in the batch need one, and let the user decide when — batching several merges and deploying once at the end is usually the right call.
 

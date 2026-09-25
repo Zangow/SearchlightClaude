@@ -27,7 +27,7 @@ The third front door alongside **`sl-plan`** (issue → reviewed plan, persisted
 - **`--min N` / `--max N`** — override the default **3–12** band. Rarely needed; the band is a guardrail, not a target (step 3).
 
 ## Board contract (Searchlight Integration Service — Zangow user project #1)
-Columns: `Backlog`, `Ready`, `In progress`, `In review`, `Done`. Children **inherit the parent's column** (fallback `Backlog`). **This skill never moves the parent card and never assigns anything** — splitting isn't starting work; `sl-issue` owns the board moves and the assignee when the real work kicks off.
+Columns: `Backlog`, `Ready`, `In progress`, `In review`, `Done`. Children **inherit the parent's column** (fallback `Backlog`; never `Done` — a card landing in "Done" is auto-closed by the board, so a parent parked there gives its children `Backlog`). **This skill never moves the parent card and never assigns anything** — splitting isn't starting work; `sl-issue` owns the board moves and the assignee when the real work kicks off.
 
 ## Pipeline
 

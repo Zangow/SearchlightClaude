@@ -23,7 +23,7 @@ An issue URL (`https://github.com/Zangow/IntegrationService/issues/<n>`) **or ju
 Status columns: `Backlog`, `Ready`, `In progress`, `In review`, `Done`.
 - **On start**: assign the issue to the user (`@me`) and move the card to **"In progress"**.
 - **On completion** (PR is up): move the card to **"In review"**. No end-column question — this is fixed, unlike dw-issue.
-- The team moves cards to "Done" and closes issues manually on merge; this skill never does either.
+- The team closes issues manually on merge; this skill never does. On this board closing and "Done" are one action — the built-in workflows move a closed issue's card to "Done" and close an issue whose card lands in "Done" — so never move a card to "Done" (it closes the issue) and never pair a close with a move.
 
 ## Pipeline
 
