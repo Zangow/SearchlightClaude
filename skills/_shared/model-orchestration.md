@@ -70,8 +70,11 @@ without losing the escalation path.
 - **Proportionality.** A one-line change doesn't need a panel. Scale to blast radius: trivial →
   a single verifier; contract/persistence/auth → escalate the model and add a second lens.
 - **Mechanical skills pin `model: sonnet` in their own frontmatter** instead of following this
-  policy — `sl-start-env`, `sl-start-embed`, `sl-create-integration`. Nothing in them takes a
-  judgment a stronger tier would make differently. **`sl-deploy` deliberately stays on the session
+  policy — `sl-start-embed`, `sl-create-integration`. Nothing in them takes a judgment a stronger
+  tier would make differently, and both are user-invoked only. **`sl-start-env` carries no model
+  pin** (only `effort: low`): the authoring session invokes it in-thread (e.g. `sl-issue` step 3
+  boots it before running the AT pack), and a skill's `model:` lasts for the rest of the turn, so
+  a pin would drop the core role that continues after it onto Sonnet. **`sl-deploy` deliberately stays on the session
   model**: it is just as mechanical, but it ships production, and the saving on a handful of short
   runs doesn't justify a cheaper tier misreading a deploy gate.
 - **The agent definitions this policy depends on** live in `.claude/agents/`: `sl-verify-runner`
