@@ -57,11 +57,13 @@ dominates.
 5. **Adjudicate inline, on Opus.** By default the deciding pass is the **main thread, inline** — it
    already holds the panel's returns. The main thread runs on the session model (named in its
    system prompt), which is usually Opus but not guaranteed: if it is not Opus, or you cannot tell,
-   dispatch **`sl-adjudicator`** (opus/high) instead. `sl-adjudicator` is only that non-Opus
+   dispatch **`sl-adjudicator`** (opus/medium) instead. `sl-adjudicator` is only that non-Opus
    fallback. Never let a non-Opus thread be the final arbiter — that is Sonnet ruling on Sonnet's
-   nominations. The inline pass has no agent file of its own, so it runs at the effort of whatever
-   skill is active on the thread (`high` inside `sl-issue`, `sl-plan`, `sl-ship`, `sl-verify` and
-   `sl-subtask`); this file cannot pin it.
+   nominations. **Effort differs between the two paths.** A dispatched `sl-adjudicator` runs at its
+   definition's `medium` — the tier the DriftwisePortal#1994 audit chose for the fallback, because
+   it rules by opening each cited anchor, not by deliberating. The inline pass has no agent file of
+   its own, so it runs at the effort of whatever skill is active on the thread (`high` inside
+   `sl-issue`, `sl-plan`, `sl-ship`, `sl-verify` and `sl-subtask`); this file cannot pin it.
 6. **Stop at diminishing returns.** Past ~4–5 reviewers you mostly re-find the same issues. Spend
    the marginal token on another *lens*, a *different model*, or an *actual test/tool run*. (That is
    panel size; how many run *at once* is rule (c) below — a panel bigger than the cap runs in
@@ -120,7 +122,7 @@ it is asked. Four rules follow for every skill and agent in this repo:
 |------|-------|--------|-------------|
 | Plan / architect | **Opus** | **high** | main thread, inline — never a planning agent |
 | Author / implement | **Opus** | **high** | main thread; `sl-core-worker` when a skill hands the role to a fresh agent (`sl-issues` items, `sl-issue`'s ship handoff) |
-| Adjudicate panel findings | **Opus** | the active skill's (inline); **high** as `sl-adjudicator` | main thread, inline (the default); `sl-adjudicator` when the session is not Opus |
+| Adjudicate panel findings | **Opus** | the active skill's (inline); **medium** as `sl-adjudicator` | main thread, inline (the default); `sl-adjudicator` when the session is not Opus |
 | Verify (behaviour + requirements) | **Sonnet**, → Opus on `sl-verify`'s triggers and for the requirements pass | **medium** | `sl-verify-runner` |
 | Ground the plan in real files | inherit | inherit | inline for ≤2 surfaces; else `Explore`, ≤3 (`sl-plan` / `sl-subtask` step 2) |
 | Review panel — depth lens | **Opus** | **high** | `sl-depth-reviewer` |
@@ -131,7 +133,8 @@ it is asked. Four rules follow for every skill and agent in this repo:
 
 Model buys *capability per shot*; effort buys *how long the model deliberates before answering*. A
 role can want one without the other — verification wants a competent model but little
-deliberation (the test run already decided), while adjudication wants both.
+deliberation (the test run already decided), and so does the dispatched adjudicator, which rules
+by opening each cited anchor.
 
 **Effort cannot be set on an Agent-tool call.** The Agent tool takes a `model:` param but **no
 effort param**, so a skill that merely *writes* "dispatch this at medium effort" changes nothing.
@@ -200,6 +203,6 @@ it comes from a tool, a test run, or a fixed rubric — it wouldn't.
     cheaper tier misreading a deploy gate. Its gates are scripts, so thinking longer would not
     change a pass or a refusal.
 - **The five agent definitions this policy depends on** live in `.claude/agents/`:
-  `sl-verify-runner` (sonnet/medium), `sl-panel-reviewer` (sonnet/medium), `sl-depth-reviewer`
-  (opus/high), `sl-adjudicator` (opus/high), `sl-core-worker` (opus/high). Changing a role's effort
-  means editing that file — editing this doc alone does nothing.
+  `sl-verify-runner` (sonnet/medium), `sl-panel-reviewer` (sonnet/medium), `sl-adjudicator`
+  (opus/medium), `sl-depth-reviewer` (opus/high), `sl-core-worker` (opus/high). Changing a role's
+  effort means editing that file — editing this doc alone does nothing.
