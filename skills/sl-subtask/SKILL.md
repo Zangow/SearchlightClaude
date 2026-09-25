@@ -14,8 +14,6 @@ The third front door alongside **`sl-plan`** (issue → reviewed plan, persisted
 
 **It writes no feature code, cuts no branch, boots no env, and opens no PR.** Its only writes are the new subtask issues, their sub-issue links, their board cards, the parent's `epic` label, and one comment on the parent — all behind a single checkbox gate.
 
-> **Model policy.** Cutting the work and ordering it is a **core role → keep it on the strongest available model** (per `IntegrationService/CLAUDE.md`: implement on **Fable**, falling back to **Opus**). A bad seam is expensive — it surfaces three cards later as a card that can't be started. Codebase grounding fans out to fresh `Explore` agents; the breakdown-review gate is a **review role** → fresh, context-isolated subagents mixing **Opus + Sonnet** (the repo's standing "spot-checked by both an Opus and a Sonnet subagent" convention, applied to the *cut* instead of the diff), **adjudicated on Opus**. Never flat-vote a mixed panel.
-
 ## Inputs
 
 ```
