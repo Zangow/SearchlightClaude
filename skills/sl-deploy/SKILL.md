@@ -42,6 +42,7 @@ The deploy scripts build the **working tree**, not `origin/main`, so a local `ma
 
 ```bash
 cd "$SL_BASE_PATH/IntegrationService"
+echo "pre-pull: $(git rev-parse --short=12 HEAD)"
 if ! git fetch origin; then echo "FETCH FAILED"
 elif [ "$(git rev-parse --abbrev-ref HEAD)" = main ]; then git pull --ff-only || echo "PULL FAILED"; fi
 git rev-parse --abbrev-ref HEAD && git status --porcelain     # branch + cleanliness
@@ -53,6 +54,7 @@ docker info >/dev/null 2>&1 && echo docker-up || echo DOCKER-DOWN
 
 Read the markers, not the exit code (the last command's status hides the fetch and the pull):
 - **`FETCH FAILED`** — stop: you can't tell what you'd be shipping.
+- **On `main`, the pull moved `HEAD`** (the `pre-pull:` SHA differs from `HEAD` now) — if the request was to promote a specific, already-tested SHA (e.g. "ship what's on QA to prod"), the pull has just swapped it for newer, untested commits: say so in the Step 3 plan and let the user choose — deploying the new `HEAD` is a QA-first sequence, not a promote.
 - **On `main`, `PULL FAILED`** (a `main` diverged from `origin`, or a dirty tree blocking the fast-forward) — stop and say why. Never merge, rebase, stash or reset to make it pass. A non-zero *ahead* count after a clean pull is unpushed local commits on `main` — call it out in the Step 3 plan.
 - **Not on `main`** (a branch or detached `HEAD`) — nothing is pulled; the user is deploying that checkout on purpose. Record the branch and both counts; a non-zero *behind* goes in the Step 3 plan. PROD from here needs the user to have named that exact commit (Guardrail 2).
 
@@ -65,13 +67,13 @@ Then:
   ```bash
   SERIAL="$(AWS_PROFILE=searchlight aws iam list-mfa-devices \
     --query "sort_by(MFADevices[?contains(SerialNumber, ':mfa/')], &EnableDate)[-1].SerialNumber" --output text)"
-  ( umask 077; AWS_PROFILE=searchlight aws sts get-session-token --serial-number "$SERIAL" \
+  ( set -o pipefail; umask 077; AWS_PROFILE=searchlight aws sts get-session-token --serial-number "$SERIAL" \
       --token-code <TOTP> --duration-seconds 43200 \
       --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text \
-    | awk '{printf "export AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s\n",$1,$2,$3}' \
-    > <scratchpad>/mfa.env )
+    | awk 'NF==3 {printf "export AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s\n",$1,$2,$3}' \
+    > <scratchpad>/mfa.env ) && [ -s <scratchpad>/mfa.env ] && echo MFA-OK || echo "MFA FAILED"
   ```
-  `invalid MFA one time pass code` = the digits were wrong (ask for a fresh code); `InvalidClientTokenId` = stale session vars in the shell, not MFA. 12 h covers a whole QA → AT → PROD sequence.
+  Proceed only on `MFA-OK`. On `MFA FAILED` the file is empty, and a backend leg that sources it then runs with **no** credentials (it unsets `AWS_PROFILE`), failing as a misleading `terraform init failed` — so re-mint first. `invalid MFA one time pass code` = the digits were wrong (ask for a fresh code); `InvalidClientTokenId` = stale session vars in the shell, not MFA; a `SERIAL` of `None` = no `:mfa/` device resolved. 12 h covers a whole QA → AT → PROD sequence.
 
 ## Step 3 — Confirm the plan
 
